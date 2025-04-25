@@ -1,17 +1,23 @@
-version: '3.8'
+# File: docker-compose.yml
+# Purpose: Defines and runs multi-container Docker applications locally.
+# Location: Root directory of the project.
+# Usage: Run 'docker-compose up -d' to start services in detached mode.
+#        Run 'docker-compose down' to stop and remove containers/networks.
+
+version: '3.8' # Use a recent version
 
 services:
   postgres-db:
-    image: postgres:15
+    image: postgres:15 # Use a specific version of Postgres
     container_name: playlist-postgres
     environment:
-      POSTGRES_DB: playlist_db
-      POSTGRES_USER: playlist_user
-      POSTGRES_PASSWORD: playlist_password
+      POSTGRES_DB: playlist_db # Name of the database to create
+      POSTGRES_USER: playlist_user # Username for the database
+      POSTGRES_PASSWORD: playlist_password # Password for the database user
     ports:
-      - "5432:5432"
+      - "5432:5432" # Map host port 5432 to container port 5432
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data # Persist database data outside the container
 
 volumes:
-  postgres_data:
+  postgres_data: # Define the named volume for data persistence
