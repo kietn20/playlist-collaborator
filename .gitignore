@@ -1,0 +1,70 @@
+HELP.md
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+# Compiled output
+*.class
+
+# Log files
+*.log
+*.log.*
+
+# Package Files
+*.jar
+*.war
+# *.ear # Usually not relevant for Spring Boot microservices
+
+# Maven Wrapper JAR (Let the script download it)
+.mvn/wrapper/maven-wrapper.jar
+
+.settings/
+.sts4-cache/
+
+nbproject/private/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+build/ # Keep if you might mix build tools, otherwise optional for pure Maven
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Miscellaneous
+HELP.md # Optional: Remove this line if you WANT to commit HELP.md
