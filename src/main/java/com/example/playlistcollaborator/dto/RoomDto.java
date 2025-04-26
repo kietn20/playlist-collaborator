@@ -1,11 +1,17 @@
+// File: src/main/java/com/example/playlistcollaborator/dto/RoomDto.java
+// Purpose: Data Transfer Object for Room details, including its playlist.
+// Location: src/main/java/com/example/playlistcollaborator/dto/
+
 package com.example.playlistcollaborator.dto;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
+
 
 @Data
 @NoArgsConstructor
@@ -14,5 +20,5 @@ public class RoomDto {
     private String publicId;
     private String name;
     private LocalDateTime createdAt;
-    private List<PlaylistSongDto> playlistSongs;
+    private List<PlaylistSongDto> playlistSongs; // Embed the list of song DTOs
 }
