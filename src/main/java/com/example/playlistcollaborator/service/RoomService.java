@@ -5,6 +5,7 @@
 package com.example.playlistcollaborator.service;
 
 import com.example.playlistcollaborator.dto.CreateRoomDto;
+import com.example.playlistcollaborator.dto.PlaylistSongDto;
 import com.example.playlistcollaborator.dto.RoomDto;
 
 import java.util.Optional;
@@ -24,6 +25,6 @@ public interface RoomService {
      */
     Optional<RoomDto> findRoomByPublicId(String publicId);
 
-    // We might add methods like 'addSongToRoom' later when implementing WebSockets,
-    // or handle song additions purely through WebSocket controllers.
+    PlaylistSongDto addSongToRoom(String publicId, AddSongRequest addSongRequest);
+
 }
