@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Collaborative Playlist</title>
+  <link rel="stylesheet" href="style.css"> <!-- We'll create this basic CSS file -->
+</head>
+<body>
+
+<h1>Collaborative Playlist</h1>
+
+<div id="room-selection">
+  <h2>Join or Create a Room</h2>
+  <label for="roomIdInput">Enter Room Public ID (or leave blank to create):</label>
+  <input type="text" id="roomIdInput" placeholder="e.g., abc123xy">
+  <button id="joinRoomBtn">Join / Create Room</button>
+  <div id="room-creation-info" style="margin-top: 10px; display: none;">
+    <p>New Room Created! Public ID: <strong id="newRoomId"></strong></p>
+    <p>Share this ID with others to collaborate.</p>
+  </div>
+</div>
+
+<hr>
+
+<div id="playlist-view" style="display: none;"> <!-- Hide until joined -->
+  <h2 id="roomNameDisplay">Room: </h2>
+  <p>Room ID: <strong id="currentRoomId"></strong></p>
+
+  <div id="add-song-form">
+    <h3>Add a Song</h3>
+    <label for="songTitle">Title:</label>
+    <input type="text" id="songTitle" required>
+    <label for="songArtist">Artist:</label>
+    <input type="text" id="songArtist" required>
+    <button id="addSongBtn">Add Song</button>
+  </div>
+
+  <h3>Current Playlist</h3>
+  <ul id="playlist">
+    <!-- Songs will be added here by JavaScript -->
+    <li class="placeholder">Playlist is empty or loading...</li>
+  </ul>
+
+  <div id="connection-status">Status: Disconnected</div>
+  <button id="disconnectBtn" style="margin-top: 15px;">Disconnect</button>
+</div>
+
+
+<!-- Include SockJS client library (needed for Stomp.js over SockJS) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+<!-- Include Stomp.js client library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+<!-- Include our application logic -->
+<script src="app.js"></script>
+
+</body>
+</html>
