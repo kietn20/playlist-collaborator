@@ -4,11 +4,14 @@
 
 package com.example.playlistcollaborator.service;
 
+import com.example.playlistcollaborator.dto.AddSongRequest;
 import com.example.playlistcollaborator.dto.CreateRoomDto;
 import com.example.playlistcollaborator.dto.PlaylistSongDto;
 import com.example.playlistcollaborator.dto.RoomDto;
 import com.example.playlistcollaborator.entity.PlaylistSong;
 import com.example.playlistcollaborator.entity.Room;
+import com.example.playlistcollaborator.exception.RoomNotFoundException;
+import com.example.playlistcollaborator.repository.PlaylistSongRepository;
 import com.example.playlistcollaborator.repository.RoomRepository;
 import lombok.RequiredArgsConstructor; // Lombok annotation for constructor injection
 import org.springframework.stereotype.Service;
@@ -25,6 +28,7 @@ import java.util.stream.Collectors;
 public class RoomServiceImpl implements RoomService {
 
     private final RoomRepository roomRepository; // Inject the repository
+    private final PlaylistSongRepository playlistSongRepository;
 
     @Override
     @Transactional // Ensures the operation is atomic (all or nothing)
@@ -45,6 +49,19 @@ public class RoomServiceImpl implements RoomService {
     public Optional<RoomDto> findRoomByPublicId(String publicId) {
         return roomRepository.findByPublicId(publicId)
                 .map(this::convertToRoomDto); // Convert the found entity to DTO
+    }
+
+    public PlaylistSongDto addSongToRoom(String publicId, AddSongRequest addSongRequest) {
+        Room room = roomRepository.findByPublicId(publicId).orElseThrow(() -> new RoomNotFoundException(publicId));
+
+        PlaylistSong newSong = new PlaylistSong();
+        newSong.setTitle(addSongRequest.getTitle());
+        newSong.setArtist(addSongRequest.getArtist());
+        newSong.setRoom(room);
+
+        PlaylistSong savedSong = playlistSongRepository.save(newSong);
+
+        return convertToPlaylistSongDto(savedSong);
     }
 
     // --- Helper Methods ---
