@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 public class RoomServiceImpl implements RoomService {
 
     private final RoomRepository roomRepository; // Inject the repository
-    private final PlaylistSongRepository playlistSongRepository;
+    private final PlaylistSongRepository playlistSongRepository; // Inject PlaylistSongRepository
 
     @Override
     @Transactional // Ensures the operation is atomic (all or nothing)
@@ -51,16 +51,28 @@ public class RoomServiceImpl implements RoomService {
                 .map(this::convertToRoomDto); // Convert the found entity to DTO
     }
 
+    @Override
+    @Transactional // Important: Transaction ensures room lookup and song saving are atomic
     public PlaylistSongDto addSongToRoom(String publicId, AddSongRequest addSongRequest) {
-        Room room = roomRepository.findByPublicId(publicId).orElseThrow(() -> new RoomNotFoundException(publicId));
+        // 1. Find the Room entity
+        Room room = roomRepository.findByPublicId(publicId)
+                .orElseThrow(() -> new RoomNotFoundException(publicId));
 
+        // 2. Create a new PlaylistSong entity
         PlaylistSong newSong = new PlaylistSong();
         newSong.setTitle(addSongRequest.getTitle());
         newSong.setArtist(addSongRequest.getArtist());
-        newSong.setRoom(room);
+        newSong.setRoom(room); // Associate the song with the found room
 
+        // 3. Save the new song (JPA handles setting the ID and @PrePersist fields)
         PlaylistSong savedSong = playlistSongRepository.save(newSong);
 
+        // Optional: Explicitly add to the room's collection if needed,
+        // though not strictly required for the relationship persistence here.
+        // room.getPlaylistSongs().add(savedSong);
+        // roomRepository.save(room); // Might trigger update if collection managed bidirectionally
+
+        // 4. Convert the saved song entity to DTO and return it
         return convertToPlaylistSongDto(savedSong);
     }
 

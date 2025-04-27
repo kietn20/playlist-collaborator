@@ -8,6 +8,7 @@ import com.example.playlistcollaborator.dto.AddSongRequest;
 import com.example.playlistcollaborator.dto.CreateRoomDto;
 import com.example.playlistcollaborator.dto.PlaylistSongDto;
 import com.example.playlistcollaborator.dto.RoomDto;
+import com.example.playlistcollaborator.exception.RoomNotFoundException;
 
 import java.util.Optional;
 
@@ -26,6 +27,13 @@ public interface RoomService {
      */
     Optional<RoomDto> findRoomByPublicId(String publicId);
 
+    /**
+     * Adds a song to the specified room's playlist.
+     * @param publicId The public identifier of the room.
+     * @param addSongRequest DTO containing song details (title, artist).
+     * @return PlaylistSongDto representing the newly added song.
+     * @throws RoomNotFoundException if the room does not exist.
+     */
     PlaylistSongDto addSongToRoom(String publicId, AddSongRequest addSongRequest);
 
 }
