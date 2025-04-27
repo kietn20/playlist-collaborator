@@ -4,6 +4,7 @@
 
 package com.example.playlistcollaborator.service;
 
+import com.example.playlistcollaborator.dto.AddSongRequest;
 import com.example.playlistcollaborator.dto.CreateRoomDto;
 import com.example.playlistcollaborator.dto.PlaylistSongDto;
 import com.example.playlistcollaborator.dto.RoomDto;
