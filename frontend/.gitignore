@@ -7,10 +7,21 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependency directories
 node_modules
 dist
 dist-ssr
 *.local
+
+# Build and cache directories
+.cache
+out
+build
+coverage
+
+# Environment files
+.env
+.env.*.local
 
 # Editor directories and files
 .vscode/*
@@ -22,3 +33,50 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# OS-specific files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.orig
+*.swp
+*.lock
+*.pid
+*.seed
+*.pid.lock
+
+# Test output
+*.log.test
+*.test-results
+
+# macOS system files
+.DS_Store
+
+# npm package lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Vite cache
+.vite
+
+# ESLint cache
+.eslintcache
+
+# Storybook build output
+storybook-static
+
+# Testing-related files
+coverage/
+.nyc_output/
+
+# IDE-specific files
+.idea/
+.vscode/settings.json
+.vscode/tasks.json
+.vscode/launch.json
