@@ -14,10 +14,12 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 @EnableWebSocketMessageBroker // Enables WebSocket message handling, backed by a message broker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
+    // Define allowed origins - React dev server and potentially production URL later
     private final String[] ALLOWED_ORIGINS = {
-            "http://localhost:3000",
-            "http://localhost:5173",
-            "http://127.0.0.1:5173",
+            "http://localhost:3000", // Default Vite/CRA React port
+            "http://localhost:5173", // Common Vite dev port
+            "http://127.0.0.1:5173" // Another common Vite dev port
+            // Add your production frontend URL here when deploying
     };
 
     /**
