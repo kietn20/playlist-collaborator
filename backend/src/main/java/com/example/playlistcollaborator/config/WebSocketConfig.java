@@ -14,6 +14,12 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 @EnableWebSocketMessageBroker // Enables WebSocket message handling, backed by a message broker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
+    private final String[] ALLOWED_ORIGINS = {
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+    };
+
     /**
      * Registers the STOMP endpoints, mapping each endpoint to a specific URL
      * and enabling SockJS fallback options. SockJS is used to enable
@@ -25,6 +31,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         // The endpoint clients will connect to for WebSocket communication.
         // '/ws-playlist' is the HTTP URL for the WebSocket handshake.
         registry.addEndpoint("/ws-playlist")
+                .setAllowedOrigins(ALLOWED_ORIGINS) // Allow connections from REact server
                 .withSockJS(); // Enable SockJS fallback options.
         // Optional: .setAllowedOrigins("*") - Configure allowed origins if needed for CORS.
         // By default, same-origin is allowed. For development, you might need "*" or specific origins.
