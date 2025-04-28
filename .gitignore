@@ -1,6 +1,6 @@
 HELP.md
 target/
-!.mvn/wrapper/maven-wrapper.jar
+!backend/.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
@@ -45,7 +45,7 @@ build/
 # *.ear # Usually not relevant for Spring Boot microservices
 
 # Maven Wrapper JAR (Let the script download it)
-.mvn/wrapper/maven-wrapper.jar
+backend/.mvn/wrapper/maven-wrapper.jar
 
 .settings/
 .sts4-cache/
