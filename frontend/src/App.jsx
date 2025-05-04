@@ -2,7 +2,7 @@
 // Purpose: Main application component, routing, context providers.
 // Location: karmonic-frontend/src/
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Toaster, toast } from "react-hot-toast"; // Import toast components
 // Import component placeholders (we will create these next)
 import JoinCreateModal from "./components/JoinCreateModal";
