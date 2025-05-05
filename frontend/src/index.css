@@ -1,5 +1,3 @@
-@import "tailwindcss";
-@import "tw-animate-css";
 /* File: frontend/src/index.css */
 /* Purpose: Import Tailwind layers, Google Fonts, and define global CSS vars */
 /* Location: frontend/src */
@@ -61,7 +59,8 @@
 
   /* Apply base body styling */
   body {
-    @apply bg-background text-foreground;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
     font-family: 'Inter', sans-serif;
     /* Ensure Inter is applied */
   }
