@@ -1,25 +1,101 @@
 // File: src/components/features/room/AddSongForm.tsx
-// Purpose: Form for adding new songs to the playlist.
-// Location: src/components/features/room/
 
-import React from 'react';
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Loader2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
- interface AddSongFormProps {
-     roomId: string;
-    // Pass onSubmit handler/websocket function later
- }
+interface AddSongFormProps {
+    roomId: string;
+    // Define a prop for submitting a song, will connect to WebSocket logic later
+    onAddSong: (title: string, artist: string) => Promise<void>; // Example
+}
 
-const AddSongForm: React.FC<AddSongFormProps> = ({roomId}) => {
-     // State for title, artist, loading will be added
+// Dummy onAddSong for now - replace in QueueSidebar when connecting to WebSocket
+const dummyOnAddSong = async (title: string, artist: string) => {
+    console.log(`Dummy add song: ${title} by ${artist}`);
+    await new Promise(resolve => setTimeout(resolve, 700)); // Simulate network
+     // toast.success(`"${title}" added (locally)!`); // For local testing
+};
+
+const AddSongForm: React.FC<AddSongFormProps> = ({ roomId, onAddSong = dummyOnAddSong }) => {
+    const [title, setTitle] = useState('');
+    const [artist, setArtist] = useState('');
+    const [isAdding, setIsAdding] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!title.trim() || !artist.trim()) {
+            toast.error('Please enter both song title and artist.');
+            return;
+        }
+        if (!roomId) {
+            toast.error('Not connected to a room.');
+            return;
+        }
+
+        setIsAdding(true);
+        try {
+            await onAddSong(title.trim(), artist.trim());
+            // Success toast might be handled by WebSocket listener for real adds.
+            // For now, we can add it here for immediate feedback for local test.
+            // toast.success(`Song "${title.trim()}" requested!`);
+            setTitle('');
+            setArtist('');
+        } catch (error) {
+            console.error('Failed to add song:', error);
+            toast.error((error as Error).message || 'Could not add song.');
+        } finally {
+            setIsAdding(false);
+        }
+    };
 
     return (
-         <div>
-            <h3>Add Song</h3>
-             {/* Inputs and button will go here using shadcn */}
-             <input type="text" placeholder="Song Title" />
-             <input type="text" placeholder="Artist" />
-             <button>Add</button>
-         </div>
+        <form onSubmit={handleSubmit} className="space-y-3 p-3 bg-muted/30 rounded-md">
+             <h3 className="text-md font-semibold text-primary">Suggest a Song</h3>
+            <div>
+                <Label htmlFor="songTitle" className="text-sm text-primary/80">Title</Label>
+                <Input
+                    id="songTitle"
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Song Title"
+                    className="mt-1 bg-input border-border placeholder:text-muted-foreground/50"
+                    disabled={isAdding}
+                    required
+                />
+            </div>
+            <div>
+                <Label htmlFor="songArtist" className="text-sm text-primary/80">Artist</Label>
+                <Input
+                    id="songArtist"
+                    type="text"
+                    value={artist}
+                    onChange={(e) => setArtist(e.target.value)}
+                    placeholder="Artist Name"
+                    className="mt-1 bg-input border-border placeholder:text-muted-foreground/50"
+                    disabled={isAdding}
+                    required
+                />
+            </div>
+            <Button
+                type="submit"
+                disabled={isAdding || !title.trim() || !artist.trim()}
+                className="w-full bg-custom-secondary hover:bg-custom-secondary/90 text-secondary-foreground"
+            >
+                {isAdding ? (
+                    <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Adding...
+                    </>
+                ) : (
+                    'Add Song'
+                )}
+            </Button>
+        </form>
     );
 };
 
