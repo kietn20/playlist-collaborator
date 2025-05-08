@@ -16,24 +16,20 @@ interface RoomViewProps {
 
 const RoomView: React.FC<RoomViewProps> = ({ roomId, username, onLeaveRoom }) => {
     return (
-        <div className="flex flex-col h-screen p-4 bg-background text-foreground">
-             {/* Header Area */}
+        <div className="flex flex-col h-screen p-4 bg-background text-foreground font-sans"> {/* Added font-sans */}
             <HeaderControls
                 roomId={roomId}
                 onLeave={onLeaveRoom}
             />
-
-             {/* Main Content Area (takes remaining height) */}
-            <main className="flex-grow flex mt-4 gap-4 justify-center items-start">
-                {/* Central padded container */}
-                <div className="flex flex-row w-full max-w-6xl gap-4 p-4 bg-card rounded-lg shadow-md">
+            <main className="flex-grow flex mt-4 gap-4 justify-center items-start"> {/* items-start instead of items-center if content height differs */}
+                <div className="flex flex-row w-full max-w-screen-xl h-[calc(100%-1rem)] gap-6 p-4 bg-card rounded-lg shadow-xl"> {/* max-w-screen-xl for wider screens, and calc for height with padding*/}
                     {/* Left Column (Currently Playing) */}
-                    <div className="w-3/4">
+                    <div className="w-3/4 h-full"> {/* Added h-full */}
                         <CurrentlyPlaying />
                     </div>
-                     {/* Right Column (Queue Sidebar) */}
-                     <aside className="w-1/4">
-                        <QueueSidebar username={username} roomId={roomId}/>
+                    {/* Right Column (Queue Sidebar) */}
+                    <aside className="w-1/4 h-full flex flex-col"> {/* Added h-full and flex flex-col */}
+                        <QueueSidebar username={username} roomId={roomId} />
                     </aside>
                 </div>
             </main>
