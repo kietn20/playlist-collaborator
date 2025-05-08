@@ -3,7 +3,7 @@
 // Location: src/
 
 import React, { useState, useCallback } from 'react';
-import { Toaster } from 'react-hot-toast'; // Import toaster for notifications
+import { Toaster, toast } from 'react-hot-toast'; // Import toaster for notifications
 import EntryModal from './components/features/entry/EntryModal';
 import RoomView from './components/layouts/RoomView';
 import './index.css'; // Ensure global styles and Tailwind are loaded
@@ -53,6 +53,7 @@ function App() {
           // TODO: Use react-hot-toast to show error message
            // Example: toast.error(error.message || 'Failed to connect to room.');
            // Reset state if needed
+           toast.error((error as Error).message || 'Failed to connect to room.');
            setUsername('');
       } finally {
           setIsLoading(false);
@@ -73,13 +74,16 @@ function App() {
   return (
       <div className="app-container min-h-screen bg-background">
           {/* Conditionally render EntryModal or RoomView */}
-          {!currentRoomId ? (
-              <EntryModal onJoinOrCreate={handleJoinOrCreate} />
-              // Consider passing isLoading to EntryModal to disable button etc.
-          ) : (
+          <EntryModal
+              isOpen={!currentRoomId} // Open modal if user is not in a room
+              isLoading={isLoading}   // Pass loading state
+              onJoinOrCreate={handleJoinOrCreate}
+          />
+
+          {currentRoomId && username && ( // Only render RoomView if we have a room and username
               <RoomView
                   roomId={currentRoomId}
-                  username={username}
+                  username={username} // Pass username
                   onLeaveRoom={handleLeaveRoom}
               />
           )}
