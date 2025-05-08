@@ -12,13 +12,16 @@ interface QueueSidebarProps {
      // Pass websocket/API functions later
 }
 
-const QueueSidebar: React.FC<QueueSidebarProps> = ({username, roomId}) => {
+const QueueSidebar: React.FC<QueueSidebarProps> = ({ username, roomId }) => {
      return (
-         <div className="flex flex-col h-full gap-4">
-            <AddSongForm roomId={roomId} />
-             <Playlist />
-         </div>
-    );
+          <div className="flex flex-col h-full gap-4"> {/* h-full is key here */}
+               {/* <AddSongForm roomId={roomId} onAddSong=actual function later /> pass onAddSong later */}
+               {/* Playlist component needs to grow */}
+               <div className="flex-grow min-h-0"> {/* Wrapper to allow Playlist to grow */}
+                    <Playlist />
+               </div>
+          </div>
+     );
 };
 
 export default QueueSidebar;
