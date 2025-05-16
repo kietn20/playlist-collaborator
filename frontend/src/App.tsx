@@ -1,9 +1,10 @@
-import { useState, useCallback } from 'react';
-import { Toaster, toast } from 'react-hot-toast'; // Ensure toast is imported directly for use
+import React, { useState, useCallback, useEffect } from 'react';
+import { Toaster, toast } from 'react-hot-toast';
 import EntryModal from './components/features/entry/EntryModal';
 import RoomView from './components/layouts/RoomView';
 import './index.css';
-import { RoomDto, CreateRoomDto } from './types/dtos'; // Import DTO types
+import { RoomDto, CreateRoomDto, PlaylistSongDto } from './types/dtos'; // Make sure PlaylistSongDto is imported
+import { usePlaylistWebSocket } from './hooks/usePlaylistWebSocket'; // Import the hook
 
 const API_BASE_URL = '/api'; // Using Vite proxy, so path is relative to frontend host
 
@@ -11,13 +12,41 @@ function App() {
     const [currentRoomId, setCurrentRoomId] = useState<string | null>(null);
     const [username, setUsername] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(false);
-    // Optional: Store the full room details if needed elsewhere
-    // const [currentRoomDetails, setCurrentRoomDetails] = useState<RoomDto | null>(null);
+    const [currentRoomName, setCurrentRoomName] = useState<string | null>(null); // For displaying room name
 
+    const [playlistSongs, setPlaylistSongs] = useState<PlaylistSongDto[]>([]);
+
+    // --- WebSocket Integration ---
+    const handleWebSocketPlaylistUpdate = useCallback((newSong: PlaylistSongDto) => {
+        // Add the new song to the existing list
+        // Ensure no duplicates if messages are somehow re-processed (optional check by ID)
+        setPlaylistSongs(prevSongs => {
+            if (prevSongs.find(s => s.id === newSong.id)) {
+                return prevSongs; // Already exists, defensive
+            }
+            // Ensure songs are sorted by addedAt or maintain insertion order
+            // If backend sends them in order or `newSong` is always the latest
+            return [...prevSongs, newSong].sort((a, b) => new Date(a.addedAt).getTime() - new Date(b.addedAt).getTime());
+        });
+    }, []);
+
+    // Initialize the WebSocket hook
+    // The hook will manage its own connection state based on currentRoomId
+    const { isConnected: isWsConnected, sendAddSongMessage } = usePlaylistWebSocket({
+        roomId: currentRoomId,
+        username: username,
+        onPlaylistUpdate: handleWebSocketPlaylistUpdate,
+        onInitialPlaylist: (initialSongs) => { // Callback to set the initial playlist (currently not used by hook, REST provides it)
+            setPlaylistSongs(initialSongs.sort((a, b) => new Date(a.addedAt).getTime() - new Date(b.addedAt).getTime()));
+        }
+    });
+
+    // --- API Call Logic ---
     const handleJoinOrCreate = useCallback(async (user: string, roomIdToJoin?: string) => {
         console.log(`Attempting to join/create. User: ${user}, Room ID: ${roomIdToJoin || 'New Room'}`);
         setIsLoading(true);
         setUsername(user); // Set username immediately
+        setPlaylistSongs([]); // Clear previous playlist on new room attempt
 
         try {
             let finalRoomData: RoomDto;
@@ -26,22 +55,13 @@ function App() {
                 // --- Attempt to JOIN an existing room ---
                 console.log(`Fetching room ${roomIdToJoin}...`);
                 const response = await fetch(`${API_BASE_URL}/rooms/${roomIdToJoin}`);
-
-                if (!response.ok) {
-                    if (response.status === 404) {
-                        throw new Error(`Room "${roomIdToJoin}" not found.`);
-                    }
-                    // Try to parse error from backend if available
-                    try {
-                        const errorData = await response.json();
-                        throw new Error(errorData.message || `Failed to fetch room: ${response.statusText}`);
-                    } catch (parseError) {
-                        throw new Error(`Failed to fetch room: ${response.statusText}`);
-                    }
+                if (!response.ok) { /* ... error handling ... */
+                    if (response.status === 404) throw new Error(`Room "${roomIdToJoin}" not found.`);
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || `Failed to fetch room: ${response.statusText}`);
                 }
                 finalRoomData = await response.json() as RoomDto;
                 console.log('Joined room:', finalRoomData);
-
             } else {
                 // --- Attempt to CREATE a new room ---
                 console.log("Creating new room...");
@@ -55,13 +75,9 @@ function App() {
                     body: JSON.stringify(createDto),
                 });
 
-                if (!response.ok) {
-                    try {
-                        const errorData = await response.json();
-                        throw new Error(errorData.message || `Failed to create room: ${response.statusText}`);
-                    } catch (parseError) {
-                        throw new Error(`Failed to create room: ${response.statusText}`);
-                    }
+                if (!response.ok) { /* ... error handling ... */
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || `Failed to create room: ${response.statusText}`);
                 }
                 finalRoomData = await response.json() as RoomDto;
                 toast.success(`New room "${finalRoomData.publicId}" created!`);
@@ -69,29 +85,40 @@ function App() {
             }
 
             setCurrentRoomId(finalRoomData.publicId);
-            // setCurrentRoomDetails(finalRoomData); // Optionally store full details
+            setCurrentRoomName(finalRoomData.name);
+            // Set initial playlist from REST API response
+            setPlaylistSongs(finalRoomData.playlistSongs.sort((a, b) => new Date(a.addedAt).getTime() - new Date(b.addedAt).getTime()) || []);
 
-            // TODO: Initialize WebSocket connection here, pass finalRoomData.publicId
+            // WebSocket connection will be initiated by the hook's useEffect due to currentRoomId change
+            // No explicit WS connect call needed here.
+
 
         } catch (error) {
             console.error("Failed to join or create room:", error);
             toast.error((error as Error).message || 'An unexpected error occurred.');
-            // Reset only if critical, or let user retry from modal
-            // setCurrentRoomId(null);
-            // setUsername(''); // Don't clear username, let user retry if it was a network issue.
         } finally {
             setIsLoading(false);
         }
     }, []); // Dependencies will be username if used in API calls, but it's set right before.
 
+    // --- Leave Room Logic ---
     const handleLeaveRoom = useCallback(() => {
         console.log(`Leaving room ${currentRoomId}`);
-        // TODO: Disconnect WebSocket here
+        // WebSocket disconnection is handled by the hook's useEffect cleanup when currentRoomId becomes null
         setCurrentRoomId(null);
-        //setCurrentRoomDetails(null);
-        // Keep username unless explicit logout. Modal will reappear.
+        setCurrentRoomName(null);
+        setPlaylistSongs([]); // Clear playlist
         toast('You have left the room.');
+        // Keep username so user doesn't have to re-enter if they join another room
     }, [currentRoomId]);
+
+    // Log WebSocket connection status for debugging
+    useEffect(() => {
+        if (currentRoomId) { // Only log if we expect to be connected
+            console.log("[App] WebSocket Connected: ", isWsConnected);
+            // Could show a visual indicator for WS connection too if desired
+        }
+    }, [isWsConnected, currentRoomId]);
 
 
     return (
@@ -105,10 +132,13 @@ function App() {
             {currentRoomId && username && (
                 <RoomView
                     roomId={currentRoomId}
+                    roomName={currentRoomName} // Pass roomName
                     username={username}
                     onLeaveRoom={handleLeaveRoom}
-                // Pass initial room details if needed for playlist:
-                // initialRoomData={currentRoomDetails}
+                    // Pass playlist state and song adding function
+                    playlistSongs={playlistSongs}
+                    onAddSong={(title, artist) => sendAddSongMessage(title, artist)} // Pass the hook's send function
+                    isWsConnected={isWsConnected} // Optionally pass WS connection status
                 />
             )}
 
@@ -116,18 +146,8 @@ function App() {
                 position="top-right"
                 reverseOrder={false}
                 toastOptions={{
-                    className: '', // Add base classes if needed
-                    style: {
-                        background: '#333', // Darker background for toasts
-                        color: '#fff',    // Light text for toasts
-                    },
-                    success: {
-                        // duration: 3000,
-                        // theme: { primary: 'green', secondary: 'black',},
-                    },
-                    error: {
-                        // duration: 5000,
-                    },
+                    className: '',
+                    style: { background: '#333', color: '#fff' },
                 }}
             />
         </div>
