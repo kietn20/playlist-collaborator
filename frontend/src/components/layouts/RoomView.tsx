@@ -3,38 +3,54 @@
 // Location: src/components/layouts/
 
 import React from 'react';
-import HeaderControls from '../features/room/HeaderControls'; // Placeholder path
-import CurrentlyPlaying from '../features/room/CurrentlyPlaying'; // Placeholder path
-import QueueSidebar from '../features/room/QueueSidebar'; // Placeholder path
+import HeaderControls from '../features/room/HeaderControls';
+import CurrentlyPlaying from '../features/room/CurrentlyPlaying';
+import QueueSidebar from '../features/room/QueueSidebar';
+import { PlaylistSongDto } from '@/types/dtos'; // Import
 
 interface RoomViewProps {
     roomId: string;
+    roomName: string | null; // Added
     username: string;
     onLeaveRoom: () => void;
-    // Pass WebSocket context/methods later
+    playlistSongs: PlaylistSongDto[]; // Added
+    onAddSong: (title: string, artist: string) => void; // Added
+    isWsConnected: boolean; // Added
 }
 
-const RoomView: React.FC<RoomViewProps> = ({ roomId, username, onLeaveRoom }) => {
+const RoomView: React.FC<RoomViewProps> = ({
+    roomId,
+    roomName,
+    username,
+    onLeaveRoom,
+    playlistSongs, // Destructure
+    onAddSong,     // Destructure
+    isWsConnected  // Destructure
+}) => {
     return (
-        <div className="flex flex-col h-screen p-4 bg-background text-foreground font-sans"> {/* Added font-sans */}
+        <div className="flex flex-col h-screen p-4 bg-background text-foreground font-sans">
             <HeaderControls
                 roomId={roomId}
+                roomName={roomName} // Pass roomName
                 onLeave={onLeaveRoom}
+                isWsConnected={isWsConnected} // Pass connection status
             />
-            <main className="flex-grow flex mt-4 gap-4 justify-center items-start"> {/* items-start instead of items-center if content height differs */}
-                <div className="flex flex-row w-full max-w-screen-xl h-[calc(100%-1rem)] gap-6 p-4 bg-card rounded-lg shadow-xl"> {/* max-w-screen-xl for wider screens, and calc for height with padding*/}
-                    {/* Left Column (Currently Playing) */}
-                    <div className="w-3/4 h-full"> {/* Added h-full */}
-                        <CurrentlyPlaying />
+            <main className="flex-grow flex mt-4 gap-4 justify-center items-start">
+                <div className="flex flex-row w-full max-w-screen-xl h-[calc(100%-1rem)] gap-6 p-4 bg-card rounded-lg shadow-xl">
+                    <div className="w-3/4 h-full">
+                        <CurrentlyPlaying currentSong={playlistSongs.length > 0 ? playlistSongs[0] : null} /> {/* Example: pass first song */}
                     </div>
-                    {/* Right Column (Queue Sidebar) */}
-                    <aside className="w-1/4 h-full flex flex-col"> {/* Added h-full and flex flex-col */}
-                        <QueueSidebar username={username} roomId={roomId} />
+                    <aside className="w-1/4 h-full flex flex-col">
+                        <QueueSidebar
+                            username={username}
+                            roomId={roomId}
+                            playlistSongs={playlistSongs} // Pass down
+                            onAddSong={onAddSong}         // Pass down
+                        />
                     </aside>
                 </div>
             </main>
         </div>
     );
 };
-
 export default RoomView;
