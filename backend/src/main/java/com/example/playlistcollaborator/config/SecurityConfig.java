@@ -18,18 +18,42 @@ import org.springframework.http.HttpMethod; // Import HttpMethod
 @EnableWebSecurity
 public class SecurityConfig {
 
+//    @Bean
+//    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+//        http
+//                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+//                .authorizeHttpRequests(authorizeRequests ->
+//                        authorizeRequests
+//                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Allow all OPTIONS pre-flight requests
+//                                .requestMatchers(HttpMethod.POST, "/api/rooms").permitAll() // Specifically permit POST to /api/rooms
+//                                .requestMatchers(HttpMethod.GET, "/api/rooms/**").permitAll() // Specifically permit GET to /api/rooms/{publicId} and potentially others under /rooms
+//                                .requestMatchers("/ws-playlist/**").permitAll()
+//                                .requestMatchers("/api/**").authenticated() // Secure other /api/** by default if not matched above (change to permitAll() if needed)
+//                                .anyRequest().authenticated() // All other requests require authentication
+//                )
+//                .csrf(AbstractHttpConfigurer::disable);
+//        return http.build();
+//    }
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(authorizeRequests ->
                         authorizeRequests
-                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Allow all OPTIONS pre-flight requests
-                                .requestMatchers(HttpMethod.POST, "/api/rooms").permitAll() // Specifically permit POST to /api/rooms
-                                .requestMatchers(HttpMethod.GET, "/api/rooms/**").permitAll() // Specifically permit GET to /api/rooms/{publicId} and potentially others under /rooms
+                                // Specific permits first
+                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/api/rooms").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/rooms/{publicId}").permitAll() // More specific for the GET
                                 .requestMatchers("/ws-playlist/**").permitAll()
-                                .requestMatchers("/api/**").authenticated() // Secure other /api/** by default if not matched above (change to permitAll() if needed)
-                                .anyRequest().authenticated() // All other requests require authentication
+                                // Then, a broader permit for other /api GETs if needed, or more specific rules
+                                // .requestMatchers(HttpMethod.GET, "/api/**").permitAll() // If you have other general GET APIs
+
+                                .requestMatchers("/error").permitAll()
+
+                                // Catch-all for other /api paths that weren't explicitly permitted above
+                                .requestMatchers("/api/**").authenticated()
+                                // All other non-API requests
+                                .anyRequest().authenticated()
                 )
                 .csrf(AbstractHttpConfigurer::disable);
         return http.build();
