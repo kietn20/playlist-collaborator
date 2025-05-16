@@ -5,23 +5,35 @@
 import React from 'react';
 import AddSongForm from './AddSongForm';
 import Playlist from './Playlist';
+import { PlaylistSongDto } from '@/types/dtos';
 
 interface QueueSidebarProps {
      username: string;
      roomId: string;
-     // Pass websocket/API functions later
+     playlistSongs: PlaylistSongDto[];
+     onAddSong: (title: string, artist: string) => void; // Changed from Promise<void> to void from App
 }
 
-const QueueSidebar: React.FC<QueueSidebarProps> = ({ username, roomId }) => {
+const QueueSidebar: React.FC<QueueSidebarProps> = ({ username, roomId, playlistSongs, onAddSong }) => {
      return (
-          <div className="flex flex-col h-full gap-4"> {/* h-full is key here */}
-               <AddSongForm roomId={roomId} onAddSong={() => {}} /> {/* pass onAddSong later */}
-               {/* Playlist component needs to grow */}
-               <div className="flex-grow min-h-0"> {/* Wrapper to allow Playlist to grow */}
-                    <Playlist />
+          <div className="flex flex-col h-full gap-4">
+               <AddSongForm
+                    roomId={roomId}
+                    // The onAddSong from the hook is now directly usable
+                    onAddSongFromForm={async (title, artist) => { // Renamed prop to avoid conflict, made it async if form needs it
+                         try {
+                              onAddSong(title, artist); // Call the simpler version from App
+                              // Form can handle its own success/clear if needed, or we rely on WS echo
+                              return Promise.resolve(); // To satisfy form's async nature
+                         } catch (e) {
+                              return Promise.reject(e);
+                         }
+                    }}
+               />
+               <div className="flex-grow min-h-0">
+                    <Playlist songs={playlistSongs} username={username} /> {/* Pass songs */}
                </div>
           </div>
      );
 };
-
 export default QueueSidebar;
