@@ -32,3 +32,12 @@ export interface ApiError {
     message: string;
     path: string;
 }
+
+export interface AddSongWsRequest {
+    title: string;
+    artist: string;
+    // username?: string; // Server can potentially derive this if users are authenticated
+}
+
+// Message received from server when a song is added (this is just PlaylistSongDto)
+export type SongAddedWsMessage = PlaylistSongDto;
