@@ -9,8 +9,7 @@ import toast from 'react-hot-toast';
 
 interface AddSongFormProps {
     roomId: string;
-    // Define a prop for submitting a song, will connect to WebSocket logic later
-    onAddSong: (title: string, artist: string) => Promise<void>; // Example
+    onAddSongFromForm: (title: string, artist: string) => Promise<void>;
 }
 
 // Dummy onAddSong for now - replace in QueueSidebar when connecting to WebSocket
@@ -20,7 +19,7 @@ const dummyOnAddSong = async (title: string, artist: string) => {
      // toast.success(`"${title}" added (locally)!`); // For local testing
 };
 
-const AddSongForm: React.FC<AddSongFormProps> = ({ roomId, onAddSong = dummyOnAddSong }) => {
+const AddSongForm: React.FC<AddSongFormProps> = ({ roomId, onAddSongFromForm }) => {
     const [title, setTitle] = useState('');
     const [artist, setArtist] = useState('');
     const [isAdding, setIsAdding] = useState(false);
@@ -38,7 +37,7 @@ const AddSongForm: React.FC<AddSongFormProps> = ({ roomId, onAddSong = dummyOnAd
 
         setIsAdding(true);
         try {
-            await onAddSong(title.trim(), artist.trim());
+            await onAddSongFromForm(title.trim(), artist.trim());
             // Success toast might be handled by WebSocket listener for real adds.
             // For now, we can add it here for immediate feedback for local test.
             // toast.success(`Song "${title.trim()}" requested!`);
