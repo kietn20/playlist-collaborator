@@ -9,6 +9,7 @@ import com.example.playlistcollaborator.dto.RoomDto;
 import com.example.playlistcollaborator.exception.RoomNotFoundException;
 import com.example.playlistcollaborator.service.RoomService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController // Marks this class as a REST controller
 @RequestMapping("/api/rooms") // Base path for all endpoints in this controller
 @RequiredArgsConstructor // Injects dependencies via constructor
+@Slf4j
 public class RoomController {
 
     private final RoomService roomService; // Inject the service
@@ -28,10 +30,10 @@ public class RoomController {
      */
     @PostMapping
     public ResponseEntity<RoomDto> createRoom(@RequestBody(required = false) CreateRoomDto createRoomDto) {
-        // Handle cases where request body might be null
+        log.info("RoomController: createRoom - START"); // Or System.out.println
         CreateRoomDto request = (createRoomDto != null) ? createRoomDto : new CreateRoomDto();
         RoomDto newRoom = roomService.createRoom(request);
-        // Return 201 Created status code along with the created room data
+        log.info("RoomController: createRoom - END, newRoom.publicId: " + newRoom.getPublicId());
         return new ResponseEntity<>(newRoom, HttpStatus.CREATED);
     }
 

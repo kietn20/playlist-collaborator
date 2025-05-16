@@ -14,6 +14,7 @@ import com.example.playlistcollaborator.exception.RoomNotFoundException;
 import com.example.playlistcollaborator.repository.PlaylistSongRepository;
 import com.example.playlistcollaborator.repository.RoomRepository;
 import lombok.RequiredArgsConstructor; // Lombok annotation for constructor injection
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional; // Important for data consistency
 
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 
 @Service // Marks this as a Spring service component
 @RequiredArgsConstructor // Creates a constructor with required (final) fields - for dependency injection
+@Slf4j
 public class RoomServiceImpl implements RoomService {
 
     private final RoomRepository roomRepository; // Inject the repository
@@ -33,6 +35,7 @@ public class RoomServiceImpl implements RoomService {
     @Override
     @Transactional // Ensures the operation is atomic (all or nothing)
     public RoomDto createRoom(CreateRoomDto createRoomDto) {
+        log.info("RoomService: createRoom - START");
         Room newRoom = new Room();
         newRoom.setName(createRoomDto.getName());
         newRoom.setPublicId(generateUniquePublicId()); // Use a helper method
@@ -41,6 +44,7 @@ public class RoomServiceImpl implements RoomService {
         // newRoom.setPlaylistSongs(new ArrayList<>()); // Not strictly needed if cascade is set right
 
         Room savedRoom = roomRepository.save(newRoom);
+        log.info("RoomService: createRoom - END, savedRoom.publicId: " + savedRoom.getPublicId());
         return convertToRoomDto(savedRoom); // Convert entity to DTO
     }
 
