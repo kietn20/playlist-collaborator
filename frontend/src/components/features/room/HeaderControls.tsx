@@ -5,13 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Share2, LogOut, Copy } from 'lucide-react'; // Icons
 import toast from 'react-hot-toast';
+import { Wifi, WifiOff } from 'lucide-react'; // Icons for connection status
+
 
 interface HeaderControlsProps {
     roomId: string;
+    roomName: string | null;
     onLeave: () => void;
+    isWsConnected: boolean;
 }
 
-const HeaderControls: React.FC<HeaderControlsProps> = ({ roomId, onLeave }) => {
+const HeaderControls: React.FC<HeaderControlsProps> = ({ roomId, roomName, onLeave, isWsConnected }) => {
     const handleShare = async () => {
         const roomUrl = `${window.location.origin}?roomId=${roomId}`; // Construct room URL
         try {
@@ -29,9 +33,19 @@ const HeaderControls: React.FC<HeaderControlsProps> = ({ roomId, onLeave }) => {
             <header className="flex justify-between items-center p-2 rounded-md bg-card/50 backdrop-blur-sm mb-2">
                 {/* Left Side */}
                 <div className="flex items-center gap-4">
-                    <div className="text-sm text-muted-foreground">
-                        <span className="font-semibold text-primary">Room ID:</span> {roomId}
+                    <div className="text-sm">
+                        <span className="font-semibold text-primary">{roomName || `Room: ${roomId}`}</span>
                     </div>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div className={`p-1 rounded-full ${isWsConnected ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                                {isWsConnected ? <Wifi size={16} /> : <WifiOff size={16} />}
+                            </div>
+                        </TooltipTrigger>
+                        <TooltipContent className="bg-popover text-popover-foreground border-border">
+                            <p>WebSocket: {isWsConnected ? 'Connected' : 'Disconnected'}</p>
+                        </TooltipContent>
+                    </Tooltip>
                     <Button
                         variant="ghost"
                         size="sm"
