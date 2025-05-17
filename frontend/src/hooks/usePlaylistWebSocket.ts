@@ -21,8 +21,7 @@ interface UsePlaylistWebSocketProps {
 
 interface UsePlaylistWebSocketReturn {
     isConnected: boolean;
-    sendAddSongMessage: (title: string, artist: string) => void;
-    // Add other send functions later (removeSong, etc.)
+    sendAddSongMessage: (title: string, artist: string, username: string) => void;
 }
 
 export const usePlaylistWebSocket = ({
@@ -142,17 +141,16 @@ export const usePlaylistWebSocket = ({
     }, [roomId, onPlaylistUpdate, stompClient]); // Rerun if roomId changes
 
     // --- Sending Messages ---
-    const sendAddSongMessage = useCallback((title: string, artist: string) => {
+    const sendAddSongMessage = useCallback((title: string, artist: string, senderUsername: string) => { // Added senderUsername
         if (stompClient && stompClient.active && roomId) {
             const destination = `/app/room/${roomId}/addSong`;
-            const message: AddSongWsRequest = { title, artist };
+            const message: AddSongWsRequest = { title, artist, username: senderUsername }; // Include username
             try {
                 stompClient.publish({
                     destination: destination,
                     body: JSON.stringify(message),
                 });
                 console.log(`[WS] Sent addSong message to ${destination}:`, message);
-                // Toast for sending is optional, success usually comes from receiving own message back
             } catch (error) {
                 console.error("[WS] Error publishing message:", error);
                 toast.error("Failed to send song suggestion.");
@@ -162,7 +160,6 @@ export const usePlaylistWebSocket = ({
             toast.error('Not connected to send song.');
         }
     }, [stompClient, roomId]);
-
 
     return { isConnected, sendAddSongMessage };
 };
