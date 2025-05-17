@@ -18,4 +18,5 @@ public class PlaylistSongDto {
     private String title;
     private String artist;
     private LocalDateTime addedAt;
+    private String addedByUsername;
 }
