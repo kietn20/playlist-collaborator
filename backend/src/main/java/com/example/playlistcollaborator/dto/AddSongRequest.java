@@ -12,8 +12,7 @@ import lombok.AllArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AddSongRequest {
-    // We don't need roomPublicId here if the client sends to a room-specific destination like /app/room/{roomId}/addSong
     private String title;
     private String artist;
-    // Could add 'requester' field later if user accounts are added
+    private String username;
 }
