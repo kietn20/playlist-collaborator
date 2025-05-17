@@ -38,6 +38,9 @@ public class PlaylistSong {
     @JoinColumn(name = "room_id", nullable = false)
     private Room room;
 
+    @Column(name = "added_by_username", nullable = true) // Or false if username is always required
+    private String addedByUsername;
+
     @PrePersist
     protected void onAdd() {
         this.addedAt = LocalDateTime.now();
