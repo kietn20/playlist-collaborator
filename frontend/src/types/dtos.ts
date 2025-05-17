@@ -8,7 +8,7 @@ export interface PlaylistSongDto {
     title: string;
     artist: string;
     addedAt: string; // LocalDateTime is serialized as ISO string
-    // addedBy?: string; // We might add this later via WebSocket payload or enriched DTO
+    addedByUsername?: string;
 }
 
 // Corresponds to RoomDto.java
@@ -36,7 +36,7 @@ export interface ApiError {
 export interface AddSongWsRequest {
     title: string;
     artist: string;
-    // username?: string; // Server can potentially derive this if users are authenticated
+    username: string;
 }
 
 // Message received from server when a song is added (this is just PlaylistSongDto)
