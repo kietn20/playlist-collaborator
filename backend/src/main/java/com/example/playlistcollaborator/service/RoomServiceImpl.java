@@ -59,17 +59,25 @@ public class RoomServiceImpl implements RoomService {
     @Transactional // Important: Transaction ensures room lookup and song saving are atomic
     public PlaylistSongDto addSongToRoom(String publicId, AddSongRequest addSongRequest) {
         // 1. Find the Room entity
+        log.info("Attempting to add song: {} by {} (user: {}) to room: {}",
+                addSongRequest.getTitle(), addSongRequest.getArtist(), addSongRequest.getUsername(), publicId);
+
         Room room = roomRepository.findByPublicId(publicId)
-                .orElseThrow(() -> new RoomNotFoundException(publicId));
+                .orElseThrow(() -> {
+                    log.warn("Room not found with publicId: {} during addSongToRoom", publicId);
+                    return new RoomNotFoundException(publicId);
+                });
 
         // 2. Create a new PlaylistSong entity
         PlaylistSong newSong = new PlaylistSong();
         newSong.setTitle(addSongRequest.getTitle());
         newSong.setArtist(addSongRequest.getArtist());
-        newSong.setRoom(room); // Associate the song with the found room
+        newSong.setRoom(room);
+        newSong.setAddedByUsername(addSongRequest.getUsername());
 
         // 3. Save the new song (JPA handles setting the ID and @PrePersist fields)
         PlaylistSong savedSong = playlistSongRepository.save(newSong);
+        log.info("Song added successfully with ID: {} by user: {}", savedSong.getId(), savedSong.getAddedByUsername());
 
         // Optional: Explicitly add to the room's collection if needed,
         // though not strictly required for the relationship persistence here.
@@ -127,7 +135,8 @@ public class RoomServiceImpl implements RoomService {
                 song.getId(),
                 song.getTitle(),
                 song.getArtist(),
-                song.getAddedAt()
+                song.getAddedAt(), // Ensure your DTO constructor has this
+                song.getAddedByUsername() // Add username here
         );
     }
 }
