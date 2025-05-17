@@ -137,7 +137,10 @@ function App() {
                     onLeaveRoom={handleLeaveRoom}
                     // Pass playlist state and song adding function
                     playlistSongs={playlistSongs}
-                    onAddSong={(title, artist) => sendAddSongMessage(title, artist)} // Pass the hook's send function
+                    onAddSong={(title, artist) => {
+                        // Pass the current username from App's state
+                        sendAddSongMessage(title, artist, username);
+                    }}
                     isWsConnected={isWsConnected} // Optionally pass WS connection status
                 />
             )}
