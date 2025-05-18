@@ -36,4 +36,13 @@ public interface RoomService {
      */
     PlaylistSongDto addSongToRoom(String publicId, AddSongRequest addSongRequest);
 
+    /**
+     * Removes a song from the specified room's playlist.
+     * @param publicId The public identifier of the room.
+     * @param songId The ID of the song to remove.
+     * @throws RoomNotFoundException if the room does not exist.
+     * @throws PlaylistSongNotFoundException if the song does not exist in the room. // We'll create this
+     */
+    void removeSongFromRoom(String publicId, UUID songId);
+
 }
