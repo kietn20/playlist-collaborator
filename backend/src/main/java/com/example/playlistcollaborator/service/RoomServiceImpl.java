@@ -10,6 +10,7 @@ import com.example.playlistcollaborator.dto.PlaylistSongDto;
 import com.example.playlistcollaborator.dto.RoomDto;
 import com.example.playlistcollaborator.entity.PlaylistSong;
 import com.example.playlistcollaborator.entity.Room;
+import com.example.playlistcollaborator.exception.PlaylistSongNotFoundException;
 import com.example.playlistcollaborator.exception.RoomNotFoundException;
 import com.example.playlistcollaborator.repository.PlaylistSongRepository;
 import com.example.playlistcollaborator.repository.RoomRepository;
@@ -86,6 +87,29 @@ public class RoomServiceImpl implements RoomService {
 
         // 4. Convert the saved song entity to DTO and return it
         return convertToPlaylistSongDto(savedSong);
+    }
+
+    @Override
+    @Transactional
+    public void removeSongFromRoom(String publicId, UUID songId) {
+        log.info("Attmepting to remove song ID: {} from room {}", songId, publicId);
+
+        Room room = roomRepository.findByPublicId(publicId)
+                .orElseThrow(() -> {
+                    log.warn("Room not found with publicId: {} during removeSongFromRoom", publicId);
+                    return new RoomNotFoundException(publicId);
+                });
+
+        PlaylistSong songToRemove = room.getPlaylistSongs().stream()
+                .filter(song -> song.getId().equals(songId))
+                .findFirst()
+                .orElseThrow(() -> {
+                    log.warn("Song ID: {} not found in  room: {} during remove attempt", songId, publicId);
+                    return new PlaylistSongNotFoundException(songId, publicId);
+                });
+
+        playlistSongRepository.delete(songToRemove);
+        log.info("Song ID: {} successfully removed from room: {}", songId, publicId);
     }
 
     // --- Helper Methods ---
