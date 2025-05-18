@@ -6,6 +6,8 @@ package com.example.playlistcollaborator.controller;
 
 import com.example.playlistcollaborator.dto.AddSongRequest;
 import com.example.playlistcollaborator.dto.PlaylistSongDto;
+import com.example.playlistcollaborator.dto.RemoveSongRequest;
+import com.example.playlistcollaborator.dto.SongRemovedResponse;
 import com.example.playlistcollaborator.service.RoomService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,10 +49,23 @@ public class PlaylistController {
         return addedSong; // This object gets automatically serialized (e.g., to JSON) and sent
     }
 
-    // --- Potential Future Methods ---
-    // @MessageMapping("/room/{publicId}/removeSong")
-    // @SendTo("/topic/room/{publicId}/playlistUpdate") // Could send the whole updated list or just the ID of removed song
-    // public SomeResponseType removeSong(@DestinationVariable String publicId, @Payload RemoveSongRequest request) { ... }
+    @MessageMapping("/room/{publicId}/removeSong")
+    @SendTo("/topic/room/{publicId}/songRemoved")
+    public SongRemovedResponse removeSong(
+            @DestinationVariable String publicId,
+            @Payload RemoveSongRequest request) throws Exception {
+        log.info("Received request to remove song ID: {} from room {}", request.getSongId(), publicId);
+
+        try {
+            roomService.removeSongFromRoom(publicId, request.getSongId());
+        } catch (Exception e) {
+            log.error("Error removing song {} from room {}: {}", request.getSongId(), publicId, e.getMessage());
+            throw e;
+        }
+
+        log.info("Broadcasting removed song ID {} to /topic/room/{}/songRemoved", request.getSongId(), publicId);
+        return new SongRemovedResponse(request.getSongId());
+    }
 
     // @MessageMapping("/room/{publicId}/reorder")
     // @SendTo("/topic/room/{publicId}/playlistUpdate")
