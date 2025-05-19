@@ -10,12 +10,13 @@ import { PlaylistSongDto } from '@/types/dtos'; // Import
 
 interface RoomViewProps {
     roomId: string;
-    roomName: string | null; // Added
+    roomName: string | null;
     username: string;
     onLeaveRoom: () => void;
-    playlistSongs: PlaylistSongDto[]; // Added
-    onAddSong: (title: string, artist: string) => void; // Added
-    isWsConnected: boolean; // Added
+    playlistSongs: PlaylistSongDto[];
+    onAddSong: (title: string, artist: string) => void;
+    onRemoveSong: (songId: string) => void;
+    isWsConnected: boolean;
 }
 
 const RoomView: React.FC<RoomViewProps> = ({
@@ -23,9 +24,10 @@ const RoomView: React.FC<RoomViewProps> = ({
     roomName,
     username,
     onLeaveRoom,
-    playlistSongs, // Destructure
-    onAddSong,     // Destructure
-    isWsConnected  // Destructure
+    playlistSongs,
+    onAddSong,    
+    onRemoveSong, 
+    isWsConnected 
 }) => {
     return (
         <div className="flex flex-col h-screen p-4 bg-background text-foreground font-sans">
@@ -44,8 +46,9 @@ const RoomView: React.FC<RoomViewProps> = ({
                         <QueueSidebar
                             username={username}
                             roomId={roomId}
-                            playlistSongs={playlistSongs} // Pass down
-                            onAddSong={onAddSong}         // Pass down
+                            playlistSongs={playlistSongs}
+                            onAddSong={onAddSong}        
+                            onRemoveSong={onRemoveSong}  
                         />
                     </aside>
                 </div>
