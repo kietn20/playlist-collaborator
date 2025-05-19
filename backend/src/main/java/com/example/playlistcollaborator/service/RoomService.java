@@ -11,6 +11,7 @@ import com.example.playlistcollaborator.dto.RoomDto;
 import com.example.playlistcollaborator.exception.RoomNotFoundException;
 
 import java.util.Optional;
+import java.util.UUID;
 
 public interface RoomService {
     /**
