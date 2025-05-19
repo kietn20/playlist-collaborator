@@ -13,6 +13,7 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<name>playlist-collaborator</name>
 	<description>Real-time Collaborative Music Playlist Builder</description>
+	<packaging>jar</packaging>
 	<url/>
 	<licenses>
 		<license/>
