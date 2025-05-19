@@ -1,23 +1,43 @@
 # File: docker-compose.yml
 # Purpose: Defines and runs multi-container Docker applications locally.
-# Location: Root directory of the project.
-# Usage: Run 'docker-compose up -d' to start services in detached mode.
-#        Run 'docker-compose down' to stop and remove containers/networks.
+# Location: Root directory of the Spring Boot project.
 
-version: '3.8' # Use a recent version
+version: '3.8'
 
 services:
+  # --- PostgreSQL Database Service ---
   postgres-db:
-    image: postgres:15 # Use a specific version of Postgres
+    image: postgres:15
     container_name: playlist-postgres
     environment:
-      POSTGRES_DB: playlist_db # Name of the database to create
-      POSTGRES_USER: playlist_user # Username for the database
-      POSTGRES_PASSWORD: playlist_password # Password for the database user
+      POSTGRES_DB: playlist_db
+      POSTGRES_USER: playlist_user
+      POSTGRES_PASSWORD: playlist_password
     ports:
-      - "5432:5432" # Map host port 5432 to container port 5432
+      - "5432:5432" # Host:Container
     volumes:
-      - postgres_data:/var/lib/postgresql/data # Persist database data outside the container
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped # Optional: Restart policy
+
+  # --- Spring Boot Backend Service ---
+  backend-app:
+    build:
+      context: . # Current directory (where this docker-compose.yml and Dockerfile are)
+      dockerfile: Dockerfile # Explicitly name the Dockerfile
+    container_name: playlist-backend
+    ports:
+      - "8080:8080" # Map host port 8080 to container's exposed port 8080
+    depends_on:
+      - postgres-db # Wait for postgres-db to be ready (basic check)
+    environment:
+      # Spring Boot will automatically try to connect to 'postgres-db:5432'
+      # because they are on the same Docker network.
+      # Update application.properties to use this hostname.
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/playlist_db # Overrides if set
+      SPRING_DATASOURCE_USERNAME: playlist_user
+      SPRING_DATASOURCE_PASSWORD: playlist_password
+      SPRING_PROFILES_ACTIVE: docker
+    restart: unless-stopped # Optional: Restart policy
 
 volumes:
   postgres_data: # Define the named volume for data persistence
