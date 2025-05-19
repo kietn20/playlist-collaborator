@@ -92,7 +92,7 @@ public class RoomServiceImpl implements RoomService {
     @Override
     @Transactional
     public void removeSongFromRoom(String publicId, UUID songId) {
-        log.info("Attmepting to remove song ID: {} from room {}", songId, publicId);
+        log.info("Attempting to remove song ID: {} from room: {}", songId, publicId);
 
         Room room = roomRepository.findByPublicId(publicId)
                 .orElseThrow(() -> {
@@ -104,12 +104,31 @@ public class RoomServiceImpl implements RoomService {
                 .filter(song -> song.getId().equals(songId))
                 .findFirst()
                 .orElseThrow(() -> {
-                    log.warn("Song ID: {} not found in  room: {} during remove attempt", songId, publicId);
+                    log.warn("Song ID: {} not found in room: {} during remove attempt", songId, publicId);
                     return new PlaylistSongNotFoundException(songId, publicId);
                 });
 
-        playlistSongRepository.delete(songToRemove);
-        log.info("Song ID: {} successfully removed from room: {}", songId, publicId);
+        // Explicitly remove from the Room's collection
+        room.getPlaylistSongs().remove(songToRemove);
+        // And set the song's room to null to break the relationship (good practice)
+        // songToRemove.setRoom(null); // Not strictly necessary if cascade/orphanRemoval handles DB, but good for in-memory state.
+
+        // Because Room.playlistSongs is configured with orphanRemoval=true (presumably),
+        // when the transaction commits, Hibernate will see that songToRemove is no longer
+        // in room.getPlaylistSongs() and will delete it.
+        // If you *also* call playlistSongRepository.delete(songToRemove), it might be redundant
+        // or could even cause issues if Hibernate tries to operate on a detached/deleted entity.
+        // Let orphanRemoval do its job by managing the collection.
+
+        // So, remove this direct deletion if relying on orphanRemoval
+        // playlistSongRepository.delete(songToRemove);
+
+        // Just ensure the Room entity is saved if changes were made to its collection
+        // Though often, changes to a managed collection are automatically detected and persisted
+        // by Hibernate during transaction commit. Saving the room explicitly can ensure it.
+        roomRepository.save(room); // This will persist the change to the room's song collection
+
+        log.info("Song ID: {} successfully removed from room's collection: {}", songId, publicId);
     }
 
     // --- Helper Methods ---
