@@ -11,9 +11,10 @@ import { PlaylistSongDto } from '@/types/dtos';
 interface PlaylistProps { // Define props
     songs: PlaylistSongDto[];
     username: string; // For identifying user's own songs if needed for styling
+    onRemoveSong: (songId: string) => void; // Function to remove a song
 }
 
-const Playlist: React.FC<PlaylistProps> = ({ songs, username }) => { // Use props
+const Playlist: React.FC<PlaylistProps> = ({ songs, username, onRemoveSong }) => {
     return (
         <div className="flex flex-col h-full">
             <h4 className="text-md font-semibold mb-2 text-primary px-1">Queue</h4>
@@ -27,8 +28,7 @@ const Playlist: React.FC<PlaylistProps> = ({ songs, username }) => { // Use prop
                                 <PlaylistItem
                                     key={song.id}
                                     song={song}
-                                // Pass current username to highlight user's own additions later
-                                // isOwnSong={song.addedByUsername === username}
+                                    onRemove={() => onRemoveSong(song.id)} // Pass the song ID to the remove function
                                 />
                             ))}
                         </ul>
