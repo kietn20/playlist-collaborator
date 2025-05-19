@@ -1,0 +1,11 @@
+# File: playlist-collaborator/.dockerignore
+# Purpose: Specifies intentionally untracked files that Docker should ignore.
+# Location: Root of the Spring Boot backend project.
+
+.git
+.gitignore
+target/
+.idea/
+*.iml
+*.log
+HELP.md
