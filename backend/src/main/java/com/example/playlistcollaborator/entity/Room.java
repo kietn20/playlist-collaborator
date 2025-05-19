@@ -38,7 +38,7 @@ public class Room {
     // orphanRemoval=true: If a PlaylistSong is removed from this list, it's deleted from DB
     // fetch=FetchType.LAZY: PlaylistSongs are not loaded from DB unless explicitly accessed (good practice)
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @OrderBy("addedAt ASC") // Default order for songs within the room
+    @OrderBy("addedAt ASC")
     private List<PlaylistSong> playlistSongs;
 
     @PrePersist // Automatically set values before inserting into DB
