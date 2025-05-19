@@ -12,9 +12,10 @@ interface QueueSidebarProps {
      roomId: string;
      playlistSongs: PlaylistSongDto[];
      onAddSong: (title: string, artist: string) => void; // Changed from Promise<void> to void from App
+     onRemoveSong: (songId: string) => void;
 }
 
-const QueueSidebar: React.FC<QueueSidebarProps> = ({ username, roomId, playlistSongs, onAddSong }) => {
+const QueueSidebar: React.FC<QueueSidebarProps> = ({ username, roomId, playlistSongs, onAddSong, onRemoveSong }) => {
      return (
           <div className="flex flex-col h-full gap-4">
                <AddSongForm
@@ -31,7 +32,7 @@ const QueueSidebar: React.FC<QueueSidebarProps> = ({ username, roomId, playlistS
                     }}
                />
                <div className="flex-grow min-h-0">
-                    <Playlist songs={playlistSongs} username={username} /> {/* Pass songs */}
+                    <Playlist songs={playlistSongs} username={username} onRemoveSong={onRemoveSong}/>
                </div>
           </div>
      );
