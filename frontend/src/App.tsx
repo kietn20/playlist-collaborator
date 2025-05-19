@@ -30,16 +30,21 @@ function App() {
         });
     }, []);
 
-    // Initialize the WebSocket hook
-    // The hook will manage its own connection state based on currentRoomId
-    const { isConnected: isWsConnected, sendAddSongMessage } = usePlaylistWebSocket({
+
+    const handleWebSocketSongRemoved = useCallback((removedSongId: string) => {
+        setPlaylistSongs(prevSongs => prevSongs.filter(song => song.id !== removedSongId));
+    }, []);
+
+    const { isConnected: isWsConnected, sendAddSongMessage, sendRemoveSongMessage } = usePlaylistWebSocket({
         roomId: currentRoomId,
         username: username,
-        onPlaylistUpdate: handleWebSocketPlaylistUpdate,
+        onPlaylistUpdate: handleWebSocketPlaylistUpdate, // from previous step
+        onSongRemoved: handleWebSocketSongRemoved,     // <<< PASS NEW CALLBACK
         onInitialPlaylist: (initialSongs) => { // Callback to set the initial playlist (currently not used by hook, REST provides it)
             setPlaylistSongs(initialSongs.sort((a, b) => new Date(a.addedAt).getTime() - new Date(b.addedAt).getTime()));
         }
     });
+
 
     // --- API Call Logic ---
     const handleJoinOrCreate = useCallback(async (user: string, roomIdToJoin?: string) => {
@@ -141,6 +146,7 @@ function App() {
                         // Pass the current username from App's state
                         sendAddSongMessage(title, artist, username);
                     }}
+                    onRemoveSong={(songId) => sendRemoveSongMessage(songId)}
                     isWsConnected={isWsConnected} // Optionally pass WS connection status
                 />
             )}
