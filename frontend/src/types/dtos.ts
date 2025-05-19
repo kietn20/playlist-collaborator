@@ -39,5 +39,14 @@ export interface AddSongWsRequest {
     username: string;
 }
 
+export interface RemoveSongWsRequest {
+    songId: string; // Corresponds to UUID on backend
+    // username?: string; // Optional
+}
+
+export interface SongRemovedWsMessage {
+    songId: string; // Corresponds to UUID on backend
+}
+
 // Message received from server when a song is added (this is just PlaylistSongDto)
 export type SongAddedWsMessage = PlaylistSongDto;
