@@ -5,7 +5,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import { PlaylistSongDto, AddSongWsRequest, SongAddedWsMessage } from '@/types/dtos'; // Adjust path if types are in websocket.ts
+import { PlaylistSongDto, AddSongWsRequest, SongAddedWsMessage, SongRemovedWsMessage, RemoveSongWsRequest } from '@/types/dtos'; // Adjust path if types are in websocket.ts
 import toast from 'react-hot-toast';
 
 const WS_ENDPOINT = '/ws-playlist'; // Matches WebSocketConfig.java on backend
@@ -16,23 +16,29 @@ interface UsePlaylistWebSocketProps {
     roomId: string | null;
     username: string | null; // For attributing added songs or other user-specific actions
     onPlaylistUpdate: (newSong: PlaylistSongDto) => void; // Callback to update local playlist state
+    onSongRemoved: (removedSongId: string) => void; // Callback to handle song removal
     onInitialPlaylist: (initialSongs: PlaylistSongDto[]) => void; // Callback to set the initial playlist
 }
 
 interface UsePlaylistWebSocketReturn {
     isConnected: boolean;
     sendAddSongMessage: (title: string, artist: string, username: string) => void;
+    sendRemoveSongMessage: (songId: string, /* Optional: username: string */) => void; 
+
 }
 
 export const usePlaylistWebSocket = ({
     roomId,
     username, // Currently unused in send, but good to have
     onPlaylistUpdate,
+    onSongRemoved, // <<< DESTRUCTURE NEW CALLBACK
     onInitialPlaylist, // Will be called if we fetch initial state via WS or combined API+WS
 }: UsePlaylistWebSocketProps): UsePlaylistWebSocketReturn => {
     const [stompClient, setStompClient] = useState<Client | null>(null);
     const [isConnected, setIsConnected] = useState<boolean>(false);
     const subscriptionRef = useRef<StompSubscription | null>(null);
+    const songsSubscriptionRef = useRef<StompSubscription | null>(null); // Rename existing
+    const removedSubscriptionRef = useRef<StompSubscription | null>(null); // For songRemoved
 
     // Function to determine SockJS URL correctly based on environment
     const getSockJsUrl = () => {
@@ -79,9 +85,9 @@ export const usePlaylistWebSocket = ({
                 toast.success(`Connected to playlist room: ${roomId}`);
 
                 // Subscribe to the room's song topic
-                const topic = `/topic/room/${roomId}/songs`;
-                console.log(`[WS] Subscribing to ${topic}`);
-                subscriptionRef.current = client.subscribe(topic, (message: IMessage) => {
+                const songsTopic = `/topic/room/${roomId}/songs`;
+                console.log(`[WS] Subscribing to ${songsTopic}`);
+                subscriptionRef.current = client.subscribe(songsTopic, (message: IMessage) => {
                     try {
                         const newSong = JSON.parse(message.body) as SongAddedWsMessage;
                         console.log('[WS] Received new song:', newSong);
@@ -93,10 +99,20 @@ export const usePlaylistWebSocket = ({
                     }
                 });
 
-                // Potentially, we could fetch initial playlist via a WS message too
-                // client.publish({ destination: `/app/room/${roomId}/getInitialPlaylist` });
-                // and handle its response, instead of relying solely on REST for initial load.
-                // For now, initial playlist is via REST call in App.tsx.
+                // Subscribe to removed songs
+                const removedTopic = `/topic/room/${roomId}/songRemoved`;
+                console.log(`[WS] Subscribing to ${removedTopic}`);
+                removedSubscriptionRef.current = client.subscribe(removedTopic, (message: IMessage) => {
+                    try {
+                        const removedInfo = JSON.parse(message.body) as SongRemovedWsMessage;
+                        console.log('[WS] Received song removed:', removedInfo);
+                        toast.success(`A song was removed from the playlist.`);
+                        onSongRemoved(removedInfo.songId); // Update App's state
+                    } catch (e) {
+                        console.error("[WS] Error parsing songRemoved message:", e, message.body);
+                    }
+                });
+
             };
 
             client.onStompError = (frame) => {
@@ -123,22 +139,25 @@ export const usePlaylistWebSocket = ({
         }
 
         // --- Disconnection Logic ---
-        return () => {
-            if (stompClient && stompClient.active) { // stompClient.active is better check
+        return () => { // Cleanup
+            if (stompClient && stompClient.active) {
                 console.log('[WS] Disconnecting...');
-                if (subscriptionRef.current) {
-                    subscriptionRef.current.unsubscribe();
-                    console.log('[WS] Unsubscribed from topic.');
-                    subscriptionRef.current = null;
+                if (songsSubscriptionRef.current) {
+                    songsSubscriptionRef.current.unsubscribe();
+                    console.log('[WS] Unsubscribed from songs topic.');
+                    songsSubscriptionRef.current = null;
                 }
-                stompClient.deactivate()
-                    .then(() => console.log('[WS] Deactivated successfully.'))
-                    .catch(err => console.error('[WS] Error during deactivation:', err));
-                setStompClient(null); // Clear the client to allow reconnect if roomId changes
+                if (removedSubscriptionRef.current) {
+                    removedSubscriptionRef.current.unsubscribe();
+                    console.log('[WS] Unsubscribed from songRemoved topic.');
+                    removedSubscriptionRef.current = null;
+                }
+                stompClient.deactivate() /* ... */;
+                setStompClient(null);
                 setIsConnected(false);
             }
         };
-    }, [roomId, onPlaylistUpdate, stompClient]); // Rerun if roomId changes
+    }, [roomId, onPlaylistUpdate, onSongRemoved, stompClient]); // Add onSongRemoved to deps
 
     // --- Sending Messages ---
     const sendAddSongMessage = useCallback((title: string, artist: string, senderUsername: string) => { // Added senderUsername
@@ -161,5 +180,25 @@ export const usePlaylistWebSocket = ({
         }
     }, [stompClient, roomId]);
 
-    return { isConnected, sendAddSongMessage };
+    const sendRemoveSongMessage = useCallback((songId: string /*, senderUsername?: string */) => {
+        if (stompClient && stompClient.active && roomId) {
+            const destination = `/app/room/${roomId}/removeSong`;
+            const message: RemoveSongWsRequest = { songId /*, username: senderUsername */ };
+            try {
+                stompClient.publish({
+                    destination: destination,
+                    body: JSON.stringify(message),
+                });
+                console.log(`[WS] Sent removeSong message to ${destination} for songId: ${songId}`);
+            } catch (error) {
+                console.error("[WS] Error publishing removeSong message:", error);
+                toast.error("Failed to remove song from playlist.");
+            }
+        } else { 
+                console.warn('[WS] Cannot send message, client not connected or no room ID.');
+                toast.error('Not connected to remove song.');
+        }
+    }, [stompClient, roomId]);
+
+    return { isConnected, sendAddSongMessage, sendRemoveSongMessage };
 };
