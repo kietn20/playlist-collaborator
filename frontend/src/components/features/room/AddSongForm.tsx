@@ -12,6 +12,7 @@ import { getYoutubeVideoId } from '@/lib/utils'; // Import the utility
 interface AddSongFormProps {
     roomId: string;
     onAddSongFromForm: (youtubeVideoId: string, title?: string, artist?: string) => Promise<void>;
+}
 
 // Dummy onAddSong for now - replace in QueueSidebar when connecting to WebSocket
 const dummyOnAddSong = async (title: string, artist: string) => {
@@ -34,14 +35,14 @@ const AddSongForm: React.FC<AddSongFormProps> = ({ roomId, onAddSongFromForm }) 
             return;
         }
 
-        if (!title.trim() || !artist.trim()) {
-            toast.error('Please enter both song title and artist.');
-            return;
-        }
-        if (!roomId) {
-            toast.error('Not connected to a room.');
-            return;
-        }
+        // if (!title.trim() || !artist.trim()) {
+        //     toast.error('Please enter both song title and artist.');
+        //     return;
+        // }
+        // if (!roomId) {
+        //     toast.error('Not connected to a room.');
+        //     return;
+        // }
 
         setIsAdding(true);
         try {
