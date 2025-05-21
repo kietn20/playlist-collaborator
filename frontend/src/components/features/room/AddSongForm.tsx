@@ -29,6 +29,7 @@ const AddSongForm: React.FC<AddSongFormProps> = ({ roomId, onAddSongFromForm }) 
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        
         const videoId = getYoutubeVideoId(youtubeInput.trim());
         if (!videoId) {
             toast.error('Please enter a valid YouTube Video URL or ID.');
@@ -39,10 +40,12 @@ const AddSongForm: React.FC<AddSongFormProps> = ({ roomId, onAddSongFromForm }) 
         //     toast.error('Please enter both song title and artist.');
         //     return;
         // }
-        // if (!roomId) {
-        //     toast.error('Not connected to a room.');
-        //     return;
-        // }
+        
+        
+        if (!roomId) {
+            toast.error('Not connected to a room.');
+            return;
+        }
 
         setIsAdding(true);
         try {
