@@ -19,7 +19,7 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({ currentSong }) => {
 
     const onPlayerStateChange: YouTubeProps['onStateChange'] = (event) => {
         // event.data has player state (playing, paused, ended, etc.)
-        console.log("Player state change:", event.data, event.target.getVideoData().title);
+        console.log("Player state change:", event.data, event.target.getPlayerState());
     };
 
     const playerOpts: YouTubeProps['opts'] = {
