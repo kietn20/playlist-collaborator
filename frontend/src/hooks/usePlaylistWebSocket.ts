@@ -22,7 +22,7 @@ interface UsePlaylistWebSocketProps {
 
 interface UsePlaylistWebSocketReturn {
     isConnected: boolean;
-    sendAddSongMessage: (title: string, artist: string, username: string) => void;
+    sendAddSongMessage: (youtubeVideoId: string, title: string | undefined, artist: string | undefined, username: string) => void;
     sendRemoveSongMessage: (songId: string, /* Optional: username: string */) => void; 
 
 }
@@ -160,10 +160,10 @@ export const usePlaylistWebSocket = ({
     }, [roomId, onPlaylistUpdate, onSongRemoved, stompClient]); // Add onSongRemoved to deps
 
     // --- Sending Messages ---
-    const sendAddSongMessage = useCallback((title: string, artist: string, senderUsername: string) => { // Added senderUsername
+    const sendAddSongMessage = useCallback((youtubeVideoId: string, title: string | undefined, artist: string | undefined, senderUsername: string) => {
         if (stompClient && stompClient.active && roomId) {
             const destination = `/app/room/${roomId}/addSong`;
-            const message: AddSongWsRequest = { title, artist, username: senderUsername }; // Include username
+            const message: AddSongWsRequest = { youtubeVideoId, title, artist, username: senderUsername }; // Include username
             try {
                 stompClient.publish({
                     destination: destination,
