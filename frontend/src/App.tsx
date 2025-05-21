@@ -20,14 +20,9 @@ function App() {
     const handleWebSocketPlaylistUpdate = useCallback((newSong: PlaylistSongDto) => {
         // Add the new song to the existing list
         // Ensure no duplicates if messages are somehow re-processed (optional check by ID)
-        setPlaylistSongs(prevSongs => {
-            if (prevSongs.find(s => s.id === newSong.id)) {
-                return prevSongs; // Already exists, defensive
-            }
-            // Ensure songs are sorted by addedAt or maintain insertion order
-            // If backend sends them in order or `newSong` is always the latest
-            return [...prevSongs, newSong].sort((a, b) => new Date(a.addedAt).getTime() - new Date(b.addedAt).getTime());
-        });
+        setPlaylistSongs(prevSongs =>
+            [...prevSongs, newSong].sort((a, b) => new Date(a.addedAt).getTime() - new Date(b.addedAt).getTime())
+        );
     }, []);
 
 
@@ -144,7 +139,7 @@ function App() {
                     playlistSongs={playlistSongs}
                     onAddSong={(title, artist) => {
                         // Pass the current username from App's state
-                        sendAddSongMessage(title, artist, username);
+                        sendAddSongMessage('', title, artist, username); // Passing empty string for youtubeVideoId
                     }}
                     onRemoveSong={(songId) => sendRemoveSongMessage(songId)}
                     isWsConnected={isWsConnected}
