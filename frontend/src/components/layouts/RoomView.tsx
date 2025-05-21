@@ -17,6 +17,7 @@ interface RoomViewProps {
     onAddSong: (title: string, artist: string) => void;
     onRemoveSong: (songId: string) => void;
     isWsConnected: boolean;
+    onAddSongFromApp: (youtubeVideoId: string, title?: string, artist?: string) => void;
 }
 
 const RoomView: React.FC<RoomViewProps> = ({
@@ -27,7 +28,8 @@ const RoomView: React.FC<RoomViewProps> = ({
     playlistSongs,
     onAddSong,    
     onRemoveSong, 
-    isWsConnected 
+    isWsConnected,
+    onAddSongFromApp
 }) => {
     return (
         <div className="flex flex-col h-screen p-4 bg-background text-foreground font-sans">
@@ -49,6 +51,7 @@ const RoomView: React.FC<RoomViewProps> = ({
                             playlistSongs={playlistSongs}
                             onAddSong={onAddSong}        
                             onRemoveSong={onRemoveSong}  
+                            onAddSongViaForm={onAddSongFromApp}
                         />
                     </aside>
                 </div>
