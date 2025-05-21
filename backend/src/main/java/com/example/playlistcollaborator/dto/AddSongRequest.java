@@ -12,6 +12,7 @@ import lombok.AllArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AddSongRequest {
+    private String youtubeVideoId;
     private String title;
     private String artist;
     private String username;
