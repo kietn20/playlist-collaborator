@@ -9,6 +9,7 @@ export interface PlaylistSongDto {
     artist: string;
     addedAt: string; // LocalDateTime is serialized as ISO string
     addedByUsername?: string;
+    youtubeVideoId?: string;
 }
 
 // Corresponds to RoomDto.java
@@ -34,6 +35,7 @@ export interface ApiError {
 }
 
 export interface AddSongWsRequest {
+    youtubeVideoId: string;
     title: string;
     artist: string;
     username: string;
