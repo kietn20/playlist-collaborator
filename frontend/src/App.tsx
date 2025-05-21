@@ -147,7 +147,12 @@ function App() {
                         sendAddSongMessage(title, artist, username);
                     }}
                     onRemoveSong={(songId) => sendRemoveSongMessage(songId)}
-                    isWsConnected={isWsConnected} // Optionally pass WS connection status
+                    isWsConnected={isWsConnected}
+                    onAddSongFromApp={(youtubeVideoId, title, artist) => {
+                        // `username` is from App's state
+                        sendAddSongMessage(youtubeVideoId, title, artist, username);
+                    }}
+                    
                 />
             )}
 
