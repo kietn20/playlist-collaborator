@@ -40,7 +40,11 @@ public class PlaylistController {
             @DestinationVariable String publicId, // Extract {publicId} from the destination
             @Payload AddSongRequest request) throws Exception { // Extract message body
 
-        log.info("Received request to add song {} - {} to room {}", request.getTitle(), request.getArtist(), publicId);
+        // LOG THE INCOMING REQUEST DTO
+        log.info("PlaylistController received AddSongRequest: {}", request.toString()); // Use .toString() from Lombok @Data
+
+        log.info("Received request to add song {} - {} (VideoID: {}) to room {} by user {}",
+                request.getTitle(), request.getArtist(), request.getYoutubeVideoId(), publicId, request.getUsername());
 
         // Delegate the actual song addition logic to the service layer
         PlaylistSongDto addedSong = roomService.addSongToRoom(publicId, request);
@@ -66,8 +70,4 @@ public class PlaylistController {
         log.info("Broadcasting removed song ID {} to /topic/room/{}/songRemoved", request.getSongId(), publicId);
         return new SongRemovedResponse(request.getSongId());
     }
-
-    // @MessageMapping("/room/{publicId}/reorder")
-    // @SendTo("/topic/room/{publicId}/playlistUpdate")
-    // public SomeResponseType reorderSongs(@DestinationVariable String publicId, @Payload ReorderRequest request) { ... }
 }
