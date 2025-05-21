@@ -3,6 +3,7 @@
 // Location: src/components/features/room/
 
 import React from 'react';
+import YouTube, { YouTubeProps } from 'react-youtube'; // Import YouTube
 import { PlaylistSongDto } from '@/types/dtos';
 
 interface CurrentlyPlayingProps {
@@ -10,20 +11,49 @@ interface CurrentlyPlayingProps {
 }
 
 const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({ currentSong }) => {
+    const onPlayerReady: YouTubeProps['onReady'] = (event) => {
+        // Access to player in event.target
+        // event.target.pauseVideo(); // Example: auto-pause
+        console.log("Player ready:", event.target);
+    };
+
+    const onPlayerStateChange: YouTubeProps['onStateChange'] = (event) => {
+        // event.data has player state (playing, paused, ended, etc.)
+        console.log("Player state change:", event.data, event.target.getVideoData().title);
+    };
+
+    const playerOpts: YouTubeProps['opts'] = {
+        height: '100%', // Make responsive
+        width: '100%',  // Make responsive
+        playerVars: {
+            // https://developers.google.com/youtube/player_parameters
+            autoplay: 1, // Auto-play when loaded (for current song)
+            controls: 1, // Show default YouTube controls
+            modestbranding: 1, // Reduce YouTube logo
+            rel: 0, // Do not show related videos at the end
+        },
+    };
+
     return (
-        <div className="p-4 rounded bg-muted/30 h-full flex flex-col items-center justify-center text-center">
-            {currentSong ? (
-                <>
-                    {/* Placeholder for album art/visualizer - for now a simple box */}
-                    <div className="w-64 h-64 md:w-80 md:h-80 bg-muted rounded-md flex items-center justify-center mb-4 shadow-lg">
-                        <span className="text-muted-foreground">Album Art</span>
-                    </div>
-                    <h3 className="text-xl font-semibold text-primary">{currentSong.title}</h3>
-                    <p className="text-md text-secondary">{currentSong.artist}</p>
-                    {/* Add playback controls later */}
-                </>
+        <div className="p-1 rounded bg-muted/30 h-full flex flex-col items-center justify-center text-center aspect-video max-h-[75vh]"> {/* Aspect ratio container for video */}
+            {currentSong && currentSong.youtubeVideoId ? (
+                <YouTube
+                    videoId={currentSong.youtubeVideoId}
+                    opts={playerOpts}
+                    onReady={onPlayerReady}
+                    onStateChange={onPlayerStateChange}
+                    className="w-full h-full rounded-md overflow-hidden shadow-lg" // Ensure it fills its container
+                    onError={(e) => console.error("YouTube Player Error:", e)}
+                />
+                // You might still want to display title/artist below the player if controls are minimal
+                // <div className="mt-2">
+                //    <h3 className="text-lg font-semibold text-primary">{currentSong.title}</h3>
+                //    <p className="text-sm text-secondary">{currentSong.artist}</p>
+                // </div>
             ) : (
-                <p className="text-muted-foreground">No song currently playing or queue is empty.</p>
+                <div className="w-full h-full bg-muted rounded-md flex items-center justify-center">
+                    <p className="text-muted-foreground">No song currently playing or queue is empty.</p>
+                </div>
             )}
         </div>
     );
