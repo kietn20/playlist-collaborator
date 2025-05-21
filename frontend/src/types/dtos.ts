@@ -36,8 +36,8 @@ export interface ApiError {
 
 export interface AddSongWsRequest {
     youtubeVideoId: string;
-    title: string;
-    artist: string;
+    title?: string;
+    artist?: string;
     username: string;
 }
 
