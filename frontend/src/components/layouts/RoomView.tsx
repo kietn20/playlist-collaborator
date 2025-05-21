@@ -42,7 +42,7 @@ const RoomView: React.FC<RoomViewProps> = ({
             <main className="flex-grow flex mt-4 gap-4 justify-center items-start">
                 <div className="flex flex-row w-full max-w-screen-xl h-[calc(100%-1rem)] gap-6 p-4 bg-card rounded-lg shadow-xl">
                     <div className="w-3/4 h-full">
-                        <CurrentlyPlaying currentSong={playlistSongs.length > 0 ? playlistSongs[0] : null} /> {/* Example: pass first song */}
+                        <CurrentlyPlaying currentSong={playlistSongs.length > 0 ? playlistSongs[0] : null} />
                     </div>
                     <aside className="w-1/4 h-full flex flex-col">
                         <QueueSidebar
