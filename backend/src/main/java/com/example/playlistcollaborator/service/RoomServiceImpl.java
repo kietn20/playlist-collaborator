@@ -77,6 +77,9 @@ public class RoomServiceImpl implements RoomService {
         newSong.setArtist((addSongRequest.getArtist() != null && !addSongRequest.getArtist().isEmpty())
                 ? addSongRequest.getArtist()
                 : "Various Artists");
+
+        newSong.setYoutubeVideoId(addSongRequest.getYoutubeVideoId());
+
         newSong.setRoom(room);
         newSong.setAddedByUsername(addSongRequest.getUsername());
 
@@ -178,6 +181,7 @@ public class RoomServiceImpl implements RoomService {
 
     // Mapper method to convert PlaylistSong Entity to PlaylistSongDto
     private PlaylistSongDto convertToPlaylistSongDto(PlaylistSong song) {
+        log.debug("Converting song to DTO. Video ID from entity: {}", song.getYoutubeVideoId()); // Add this debug log
         return new PlaylistSongDto(
                 song.getId(),
                 song.getTitle(),
