@@ -71,8 +71,12 @@ public class RoomServiceImpl implements RoomService {
 
         // 2. Create a new PlaylistSong entity
         PlaylistSong newSong = new PlaylistSong();
-        newSong.setTitle(addSongRequest.getTitle());
-        newSong.setArtist(addSongRequest.getArtist());
+        newSong.setTitle((addSongRequest.getTitle() != null && !addSongRequest.getTitle().isEmpty())
+                ? addSongRequest.getTitle()
+                : "Youtube Video");
+        newSong.setArtist((addSongRequest.getArtist() != null && !addSongRequest.getArtist().isEmpty())
+                ? addSongRequest.getArtist()
+                : "Various Artists");
         newSong.setRoom(room);
         newSong.setAddedByUsername(addSongRequest.getUsername());
 
@@ -178,8 +182,9 @@ public class RoomServiceImpl implements RoomService {
                 song.getId(),
                 song.getTitle(),
                 song.getArtist(),
-                song.getAddedAt(), // Ensure your DTO constructor has this
-                song.getAddedByUsername() // Add username here
+                song.getAddedAt(),
+                song.getAddedByUsername(),
+                song.getYoutubeVideoId()
         );
     }
 }
