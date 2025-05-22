@@ -1,70 +1,52 @@
-HELP.md
-target/
-!backend/.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
+# File: PLAYLIST-COLLABORATOR/.gitignore (ROOT of the entire Git repository)
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
+### IDEs / Editors ###
+# IntelliJ IDEA project files (if .idea is at the root for the whole monorepo)
+.idea/
 
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
-
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
-
-### VS Code ###
+# VS Code (if .vscode is at the root)
 .vscode/
 
-# Compiled output
-*.class
+# Other editor temp files or general logs
+*.swp
+*.swo
+*~
+*.bak
+*.tmp
 
-# Log files
-*.log
-*.log.*
-
-# Package Files
-*.jar
-*.war
-# *.ear # Usually not relevant for Spring Boot microservices
-
-# Maven Wrapper JAR (Let the script download it)
-backend/.mvn/wrapper/maven-wrapper.jar
-
-.settings/
-.sts4-cache/
-
-nbproject/private/
-nbbuild/
-dist/
-nbdist/
-.nb-gradle/
-build/ # Keep if you might mix build tools, otherwise optional for pure Maven
-
-# OS generated files
+### OS Generated Files ###
+# macOS
 .DS_Store
-.DS_Store?
+.AppleDouble
+.LSOverride
 ._*
 .Spotlight-V100
 .Trashes
-ehthumbs.db
-Thumbs.db
+Icon?
 
-# Miscellaneous
-HELP.md # Optional: Remove this line if you WANT to commit HELP.md
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+### Node modules / Build artifacts (if accidentally created at root) ###
+# These should ideally be handled by sub-project .gitignores,
+# but adding them here can catch strays.
+# node_modules/
+# target/
+# dist/
+# build/
+
+### Environment Files (if .env for docker-compose is at root and not backend/) ###
+# If your .env and docker-compose.yml for the *backend* are inside the 'backend' folder,
+# then 'backend/.env' should be in 'backend/.gitignore'.
+# If you decide to move docker-compose.yml and its .env to the *root* of PLAYLIST-COLLABORATOR,
+# then you would put '.env' here. Based on your screenshot, it's in 'backend/', so the
+# current 'backend/.gitignore' handling '.env' is correct.
+
+### Other generated files specific to your overall project ###
+# Example: any top-level reports or logs
+# coverage-report/
+# project-docs/generated/
+
+# Add any other global ignores here
