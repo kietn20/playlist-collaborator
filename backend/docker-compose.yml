@@ -1,43 +1,46 @@
-# File: docker-compose.yml
-# Purpose: Defines and runs multi-container Docker applications locally.
-# Location: Root directory of the Spring Boot project.
-
 version: '3.8'
 
 services:
-  # --- PostgreSQL Database Service ---
   postgres-db:
     image: postgres:15
     container_name: playlist-postgres
     environment:
-      POSTGRES_DB: playlist_db
-      POSTGRES_USER: playlist_user
-      POSTGRES_PASSWORD: playlist_password
+      POSTGRES_DB: ${POSTGRES_DB}         # From .env
+      POSTGRES_USER: ${POSTGRES_USER}       # From .env
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD} # From .env
     ports:
-      - "5432:5432" # Host:Container
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    restart: unless-stopped # Optional: Restart policy
+    restart: unless-stopped
 
-  # --- Spring Boot Backend Service ---
   backend-app:
     build:
-      context: . # Current directory (where this docker-compose.yml and Dockerfile are)
-      dockerfile: Dockerfile # Explicitly name the Dockerfile
+      context: .
+      dockerfile: Dockerfile
     container_name: playlist-backend
     ports:
-      - "8080:8080" # Map host port 8080 to container's exposed port 8080
+      - "8080:8080"
     depends_on:
-      - postgres-db # Wait for postgres-db to be ready (basic check)
+      - postgres-db
     environment:
-      # Spring Boot will automatically try to connect to 'postgres-db:5432'
-      # because they are on the same Docker network.
-      # Update application.properties to use this hostname.
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/playlist_db # Overrides if set
-      SPRING_DATASOURCE_USERNAME: playlist_user
-      SPRING_DATASOURCE_PASSWORD: playlist_password
+      # Spring Profile to activate application-docker.properties
       SPRING_PROFILES_ACTIVE: docker
-    restart: unless-stopped # Optional: Restart policy
+
+      # Pass values from .env file to the Spring Boot application environment
+      # These will be used by application-docker.properties' placeholders
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY}
+      # Note: SPRING_DATASOURCE_URL, USERNAME, PASSWORD are automatically picked up by Spring Boot
+      # if they follow the Spring Boot relaxed binding conventions for environment variables,
+      # potentially overriding what's in application-docker.properties directly.
+      # To be explicit, you could also set these:
+      # SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/${POSTGRES_DB} # If not set by profile
+      # SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      # SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+    restart: unless-stopped
 
 volumes:
-  postgres_data: # Define the named volume for data persistence
+  postgres_data:
