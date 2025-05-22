@@ -32,6 +32,7 @@ public class RoomServiceImpl implements RoomService {
 
     private final RoomRepository roomRepository; // Inject the repository
     private final PlaylistSongRepository playlistSongRepository; // Inject PlaylistSongRepository
+    private final YouTubeApiService youtubeApiService;
 
     @Override
     @Transactional // Ensures the operation is atomic (all or nothing)
@@ -59,7 +60,6 @@ public class RoomServiceImpl implements RoomService {
     @Override
     @Transactional // Important: Transaction ensures room lookup and song saving are atomic
     public PlaylistSongDto addSongToRoom(String publicId, AddSongRequest addSongRequest) {
-        // 1. Find the Room entity
         log.info("Attempting to add song: {} by {} (user: {}) to room: {}",
                 addSongRequest.getTitle(), addSongRequest.getArtist(), addSongRequest.getUsername(), publicId);
 
@@ -69,30 +69,32 @@ public class RoomServiceImpl implements RoomService {
                     return new RoomNotFoundException(publicId);
                 });
 
-        // 2. Create a new PlaylistSong entity
         PlaylistSong newSong = new PlaylistSong();
-        newSong.setTitle((addSongRequest.getTitle() != null && !addSongRequest.getTitle().isEmpty())
-                ? addSongRequest.getTitle()
-                : "Youtube Video");
-        newSong.setArtist((addSongRequest.getArtist() != null && !addSongRequest.getArtist().isEmpty())
-                ? addSongRequest.getArtist()
-                : "Various Artists");
-
         newSong.setYoutubeVideoId(addSongRequest.getYoutubeVideoId());
+
+        String title = addSongRequest.getTitle();
+        String artist = addSongRequest.getArtist();
+
+        // Fetch from YouTube if title/artist are missing and videoId is present
+        if ((title == null || title.isEmpty() || artist == null || artist.isEmpty()) &&
+                addSongRequest.getYoutubeVideoId() != null && !addSongRequest.getYoutubeVideoId().isEmpty()) {
+            YouTubeVideoDetails details = youtubeApiService.getVideoDetails(addSongRequest.getYoutubeVideoId());
+            if (details != null) {
+                title = (title == null || title.isEmpty()) ? details.getTitle() : title;
+                artist = (artist == null || artist.isEmpty()) ? details.getChannelTitle() : artist;
+            }
+        }
+
+        // Set title and artist using fetched data or defaults
+        newSong.setTitle((title != null && !title.isEmpty()) ? title : "YouTube Video");
+        newSong.setArtist((artist != null && !artist.isEmpty()) ? artist : "Various Artists");
 
         newSong.setRoom(room);
         newSong.setAddedByUsername(addSongRequest.getUsername());
 
-        // 3. Save the new song (JPA handles setting the ID and @PrePersist fields)
         PlaylistSong savedSong = playlistSongRepository.save(newSong);
         log.info("Song added successfully with ID: {} by user: {}", savedSong.getId(), savedSong.getAddedByUsername());
 
-        // Optional: Explicitly add to the room's collection if needed,
-        // though not strictly required for the relationship persistence here.
-        // room.getPlaylistSongs().add(savedSong);
-        // roomRepository.save(room); // Might trigger update if collection managed bidirectionally
-
-        // 4. Convert the saved song entity to DTO and return it
         return convertToPlaylistSongDto(savedSong);
     }
 
