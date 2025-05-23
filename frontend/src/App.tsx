@@ -42,35 +42,6 @@ function App() {
 
 
     // --- API Call Logic ---
-    const handleSongEnded = useCallback((endedSongId: string | null) => {
-        console.log(`[App] Song ended, ID: ${endedSongId}`);
-        setPlaylistSongs(prevSongs => {
-            if (prevSongs.length === 0) return []; // No songs to remove
-
-            // Ensure the song that ended is indeed the one at the top of the queue
-            if (endedSongId && prevSongs[0] && prevSongs[0].id === endedSongId) {
-                const newPlaylist = prevSongs.slice(1); // Remove the first song
-                if (newPlaylist.length > 0) {
-                    toast.success(`Now playing: ${newPlaylist[0].title}`);
-                } else {
-                    toast.success("Playlist finished!");
-                }
-                return newPlaylist;
-            } else if (!endedSongId && prevSongs.length > 0) {
-                // If no endedSongId provided but queue wasn't empty, assume first song ended
-                console.warn("[App] Song ended without specific ID, advancing queue.");
-                const newPlaylist = prevSongs.slice(1);
-                if (newPlaylist.length > 0) {
-                    toast.success(`Now playing: ${newPlaylist[0].title}`);
-                } else {
-                    toast.success("Playlist finished!");
-                }
-                return newPlaylist;
-            }
-            return prevSongs; // No change if IDs don't match or queue was empty
-        });
-    }, []); // No direct dependencies here as it operates on state setter
-
     const handleJoinOrCreate = useCallback(async (user: string, roomIdToJoin?: string) => {
         console.log(`Attempting to join/create. User: ${user}, Room ID: ${roomIdToJoin || 'New Room'}`);
         setIsLoading(true);
@@ -130,6 +101,47 @@ function App() {
         }
     }, []); // Dependencies will be username if used in API calls, but it's set right before.
 
+    const handleSongEnded = useCallback((endedSongId: string | null) => {
+        console.log(`[App] Song ended, ID: ${endedSongId}`);
+        setPlaylistSongs(prevSongs => {
+            if (prevSongs.length === 0) return []; // No songs to remove
+
+            // Ensure the song that ended is indeed the one at the top of the queue
+            if (endedSongId && prevSongs[0] && prevSongs[0].id === endedSongId) {
+                const newPlaylist = prevSongs.slice(1); // Remove the first song
+                if (newPlaylist.length > 0) {
+                    toast.success(`Now playing: ${newPlaylist[0].title}`);
+                } else {
+                    toast.success("Playlist finished!");
+                }
+                return newPlaylist;
+            } else if (!endedSongId && prevSongs.length > 0) {
+                // If no endedSongId provided but queue wasn't empty, assume first song ended
+                console.warn("[App] Song ended without specific ID, advancing queue.");
+                const newPlaylist = prevSongs.slice(1);
+                if (newPlaylist.length > 0) {
+                    toast.success(`Now playing: ${newPlaylist[0].title}`);
+                } else {
+                    toast.success("Playlist finished!");
+                }
+                return newPlaylist;
+            }
+            return prevSongs; // No change if IDs don't match or queue was empty
+        });
+    }, []); // No direct dependencies here as it operates on state setter
+
+    const handleSkipSong = useCallback(() => {
+        if (playlistSongs.length > 0) {
+            const currentSongToSkip = playlistSongs[0];
+            console.log(`[App] Skipping song: ${currentSongToSkip.title}, ID: ${currentSongToSkip.id}`);
+            // Call handleSongEnded, as the logic is the same: advance the playlist
+            // This also benefits from the toast messages in handleSongEnded
+            handleSongEnded(currentSongToSkip.id);
+        } else {
+            toast.error("No song to skip!");
+        }
+    }, [playlistSongs, handleSongEnded]); // Include playlistSongs and handleSongEnded as dependencies
+
     // --- Leave Room Logic ---
     const handleLeaveRoom = useCallback(() => {
         console.log(`Leaving room ${currentRoomId}`);
@@ -176,7 +188,8 @@ function App() {
                         // `username` is from App's state
                         sendAddSongMessage(youtubeVideoId, title, artist, username);
                     }}
-                    onSongEnded={handleSongEnded} // Pass the onSongEnded function
+                    onSongEnded={handleSongEnded}
+                    onSkipSong={handleSkipSong}
                 />
             )}
 
