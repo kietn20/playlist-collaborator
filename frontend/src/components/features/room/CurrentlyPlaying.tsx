@@ -37,19 +37,20 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({ currentSong }) => {
     return (
         <div className="p-1 rounded bg-muted/30 h-full flex flex-col items-center justify-center text-center aspect-video max-h-[75vh]"> {/* Aspect ratio container for video */}
             {currentSong && currentSong.youtubeVideoId ? (
-                <YouTube
-                    videoId={currentSong.youtubeVideoId}
-                    opts={playerOpts}
-                    onReady={onPlayerReady}
-                    onStateChange={onPlayerStateChange}
-                    className="w-full h-full rounded-md overflow-hidden shadow-lg" // Ensure it fills its container
-                    onError={(e) => console.error("YouTube Player Error:", e)}
-                />
-                // You might still want to display title/artist below the player if controls are minimal
-                // <div className="mt-2">
-                //    <h3 className="text-lg font-semibold text-primary">{currentSong.title}</h3>
-                //    <p className="text-sm text-secondary">{currentSong.artist}</p>
-                // </div>
+                <>
+                    <YouTube
+                        videoId={currentSong.youtubeVideoId}
+                        opts={playerOpts}
+                        onReady={onPlayerReady}
+                        onStateChange={onPlayerStateChange}
+                        className="w-full h-full rounded-md overflow-hidden shadow-lg" // Ensure it fills its container
+                        onError={(e) => console.error("YouTube Player Error:", e)}
+                    />
+                    <div className="mt-2">
+                        <h3 className="text-lg font-semibold text-primary">{currentSong.title}</h3>
+                        <p className="text-sm text-secondary">{currentSong.artist}</p>
+                    </div>
+                </>
             ) : (
                 <div className="w-full h-full bg-muted rounded-md flex items-center justify-center">
                     <p className="text-muted-foreground">No song currently playing or queue is empty.</p>
