@@ -2,31 +2,55 @@
 // Purpose: Displays the details/image of the currently playing song.
 // Location: src/components/features/room/
 
-import React from 'react';
-import YouTube, { YouTubeProps } from 'react-youtube'; // Import YouTube
+import React, { useEffect, useRef } from 'react';
+import YouTube, { YouTubePlayer, YouTubeProps } from 'react-youtube'; // Import YouTube
 import { PlaylistSongDto } from '@/types/dtos';
 
 interface CurrentlyPlayingProps {
     currentSong: PlaylistSongDto | null;
+    onSongEnded: (songId: string | null) => void;
 }
 
-const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({ currentSong }) => {
+const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({ currentSong, onSongEnded }) => {
+    const playerRef = useRef<YouTubePlayer | null>(null);
+
+
     const onPlayerReady: YouTubeProps['onReady'] = (event) => {
-        // Access to player in event.target
-        // event.target.pauseVideo(); // Example: auto-pause
-        console.log("Player ready:", event.target);
+        playerRef.current = event.target; // Store the player instance
+        console.log("Player ready:", event.target, "playing:", currentSong?.title);
     };
 
     const onPlayerStateChange: YouTubeProps['onStateChange'] = (event) => {
-        // event.data has player state (playing, paused, ended, etc.)
-        console.log("Player state change:", event.data, event.target.getPlayerState());
+        console.log("Player state change. Data:", event.data, "Song:", currentSong?.title);
+        if (event.data === YouTube.PlayerState.ENDED) { // YT.PlayerState.ENDED is 0
+            console.log("Song ended:", currentSong?.title, "ID:", currentSong?.id);
+            if (currentSong && currentSong.id) {
+                onSongEnded(currentSong.id);
+            } else {
+                onSongEnded(null); // Should not happen if a song was playing
+            }
+        }
     };
+
+    // Effect to handle changes in currentSong prop to load new video
+    useEffect(() => {
+        if (currentSong && currentSong.youtubeVideoId && playerRef.current) {
+            console.log("New currentSong, attempting to load videoId:", currentSong.youtubeVideoId);
+            // Check if player's current video is different to avoid unnecessary reloads/flicker
+            // This check is a bit complex because player API might not expose current videoId directly
+            // easily without an API call, so direct load is often fine.
+            // For now, we'll just load it. Autoplay will handle if it should play.
+            playerRef.current.loadVideoById(currentSong.youtubeVideoId);
+        } else if (!currentSong && playerRef.current && typeof playerRef.current.stopVideo === 'function') {
+            // If no current song, stop the player
+            playerRef.current.stopVideo();
+        }
+    }, [currentSong]); // Rerun when currentSong changes
 
     const playerOpts: YouTubeProps['opts'] = {
         height: '100%', // Make responsive
         width: '100%',  // Make responsive
         playerVars: {
-            // https://developers.google.com/youtube/player_parameters
             autoplay: 1, // Auto-play when loaded (for current song)
             controls: 1, // Show default YouTube controls
             modestbranding: 1, // Reduce YouTube logo
@@ -35,20 +59,20 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({ currentSong }) => {
     };
 
     return (
-        <div className="p-1 rounded bg-muted/30 h-full flex flex-col items-center justify-center text-center aspect-video max-h-[75vh]"> {/* Aspect ratio container for video */}
+        <div className="p-1 rounded bg-muted/30 h-full flex flex-col items-center justify-center text-center aspect-video max-h-[75vh]">
             {currentSong && currentSong.youtubeVideoId ? (
                 <>
                     <YouTube
-                        videoId={currentSong.youtubeVideoId}
+                        videoId={currentSong.youtubeVideoId} // Initial videoId
                         opts={playerOpts}
                         onReady={onPlayerReady}
                         onStateChange={onPlayerStateChange}
-                        className="w-full h-full rounded-md overflow-hidden shadow-lg" // Ensure it fills its container
+                        className="w-full h-full rounded-md overflow-hidden shadow-lg"
                         onError={(e) => console.error("YouTube Player Error:", e)}
                     />
-                    <div className="mt-2">
-                        <h3 className="text-lg font-semibold text-primary">{currentSong.title}</h3>
-                        <p className="text-sm text-secondary">{currentSong.artist}</p>
+                    <div className="mt-2 px-2 w-full text-left"> {/* Ensure text can wrap */}
+                        <h3 className="text-lg font-semibold text-primary truncate" title={currentSong.title}>{currentSong.title}</h3>
+                        <p className="text-sm text-secondary truncate" title={currentSong.artist}>{currentSong.artist}</p>
                     </div>
                 </>
             ) : (
