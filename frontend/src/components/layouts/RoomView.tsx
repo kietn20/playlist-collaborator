@@ -6,7 +6,7 @@ import React from 'react';
 import HeaderControls from '../features/room/HeaderControls';
 import CurrentlyPlaying from '../features/room/CurrentlyPlaying';
 import QueueSidebar from '../features/room/QueueSidebar';
-import { PlaylistSongDto } from '@/types/dtos'; // Import
+import { PlaylistSongDto } from '@/types/dtos';
 
 interface RoomViewProps {
     roomId: string;
@@ -18,6 +18,7 @@ interface RoomViewProps {
     onRemoveSong: (songId: string) => void;
     isWsConnected: boolean;
     onAddSongFromApp: (youtubeVideoId: string, title?: string, artist?: string) => void;
+    onSongEnded: (songId: string | null) => void;
 }
 
 const RoomView: React.FC<RoomViewProps> = ({
@@ -26,10 +27,11 @@ const RoomView: React.FC<RoomViewProps> = ({
     username,
     onLeaveRoom,
     playlistSongs,
-    onAddSong,    
-    onRemoveSong, 
+    onAddSong,
+    onRemoveSong,
     isWsConnected,
-    onAddSongFromApp
+    onAddSongFromApp,
+    onSongEnded,
 }) => {
     return (
         <div className="flex flex-col h-screen p-4 bg-background text-foreground font-sans">
@@ -42,15 +44,18 @@ const RoomView: React.FC<RoomViewProps> = ({
             <main className="flex-grow flex mt-4 gap-4 justify-center items-start">
                 <div className="flex flex-row w-full max-w-screen-xl h-[calc(100%-1rem)] gap-6 p-4 bg-card rounded-lg shadow-xl">
                     <div className="w-3/4 h-full">
-                        <CurrentlyPlaying currentSong={playlistSongs.length > 0 ? playlistSongs[0] : null} />
+                        <CurrentlyPlaying
+                            currentSong={playlistSongs.length > 0 ? playlistSongs[0] : null}
+                            onSongEnded={onSongEnded} // Pass the onSongEnded function
+                        />
                     </div>
                     <aside className="w-1/4 h-full flex flex-col">
                         <QueueSidebar
                             username={username}
                             roomId={roomId}
                             playlistSongs={playlistSongs}
-                            onAddSong={onAddSong}        
-                            onRemoveSong={onRemoveSong}  
+                            onAddSong={onAddSong}
+                            onRemoveSong={onRemoveSong}
                             onAddSongViaForm={onAddSongFromApp}
                         />
                     </aside>
