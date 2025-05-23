@@ -19,6 +19,7 @@ interface RoomViewProps {
     isWsConnected: boolean;
     onAddSongFromApp: (youtubeVideoId: string, title?: string, artist?: string) => void;
     onSongEnded: (songId: string | null) => void;
+    onSkipSong: () => void;
 }
 
 const RoomView: React.FC<RoomViewProps> = ({
@@ -32,21 +33,24 @@ const RoomView: React.FC<RoomViewProps> = ({
     isWsConnected,
     onAddSongFromApp,
     onSongEnded,
+    onSkipSong,
 }) => {
     return (
         <div className="flex flex-col h-screen p-4 bg-background text-foreground font-sans">
             <HeaderControls
                 roomId={roomId}
-                roomName={roomName} // Pass roomName
+                roomName={roomName}
                 onLeave={onLeaveRoom}
-                isWsConnected={isWsConnected} // Pass connection status
+                isWsConnected={isWsConnected}
+                onSkipSong={onSkipSong}
+                canSkip={playlistSongs.length > 0}
             />
             <main className="flex-grow flex mt-4 gap-4 justify-center items-start">
                 <div className="flex flex-row w-full max-w-screen-xl h-[calc(100%-1rem)] gap-6 p-4 bg-card rounded-lg shadow-xl">
                     <div className="w-3/4 h-full">
                         <CurrentlyPlaying
                             currentSong={playlistSongs.length > 0 ? playlistSongs[0] : null}
-                            onSongEnded={onSongEnded} // Pass the onSongEnded function
+                            onSongEnded={onSongEnded}
                         />
                     </div>
                     <aside className="w-1/4 h-full flex flex-col">
