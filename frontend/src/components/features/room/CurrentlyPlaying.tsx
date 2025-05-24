@@ -5,6 +5,7 @@
 import React, { useEffect, useRef } from 'react';
 import YouTube, { YouTubePlayer, YouTubeProps } from 'react-youtube'; // Import YouTube
 import { PlaylistSongDto } from '@/types/dtos';
+import toast from 'react-hot-toast';
 
 interface CurrentlyPlayingProps {
     currentSong: PlaylistSongDto | null;
@@ -47,6 +48,26 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({ currentSong, onSong
         }
     }, [currentSong]); // Rerun when currentSong changes
 
+    const handlePlayerError: YouTubeProps['onError'] = (event) => {
+        console.error("YouTube Player Error. Event Data:", event.data, "Song:", currentSong);
+        let errorMessage = "The video could not be played.";
+        switch (event.data) {
+            case 2: errorMessage = "Invalid video ID or request."; break;
+            case 5: errorMessage = "Video cannot be played in HTML5 player."; break;
+            case 100: errorMessage = "Video not found."; break;
+            case 101:
+            case 150: errorMessage = "Video owner does not allow embedded playback."; break;
+        }
+        toast.error(errorMessage);
+
+        // Automatically skip to the next song if there's an error with the current one
+        if (currentSong && currentSong.id) {
+            onSongEnded(currentSong.id); // Treat it as if the song ended
+        } else {
+            onSongEnded(null); // Should ideally not happen if an error occurs on a loaded song
+        }
+    };
+
     const playerOpts: YouTubeProps['opts'] = {
         height: '100%', // Make responsive
         width: '100%',  // Make responsive
@@ -68,7 +89,7 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({ currentSong, onSong
                         onReady={onPlayerReady}
                         onStateChange={onPlayerStateChange}
                         className="w-full h-full rounded-md overflow-hidden shadow-lg"
-                        onError={(e) => console.error("YouTube Player Error:", e)}
+                        onError={handlePlayerError}
                     />
                     <div className="mt-2 px-2 w-full text-left"> {/* Ensure text can wrap */}
                         <h3 className="text-lg font-semibold text-primary truncate" title={currentSong.title}>{currentSong.title}</h3>
