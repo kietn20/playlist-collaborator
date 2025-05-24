@@ -5,6 +5,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { XCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 // Define a type for the song object (adjust as needed)
 interface Song {
@@ -17,19 +18,28 @@ interface Song {
 interface PlaylistItemProps {
     song: Song;
     onRemove: () => void; // Function to remove the song
+    currentUsername: string;
 }
 
-const PlaylistItem: React.FC<PlaylistItemProps> = ({ song, onRemove }) => {
+const PlaylistItem: React.FC<PlaylistItemProps> = ({ song, onRemove, currentUsername }) => {
+    const isOwnSong = song.addedByUsername === currentUsername;
+
     return (
-        <li className="p-2 border-b border-border/30 last:border-b-0 hover:bg-muted/50 transition-colors ease-in-out duration-150 flex justify-between items-center group">
+        <li className={cn(
+            "p-2 border-b border-border/30 last:border-b-0 hover:bg-muted/50 transition-colors ease-in-out duration-150 flex justify-between items-center group",
+            isOwnSong && "bg-primary/10" // Example: slightly different background for own songs
+        )}>
             <div>
                 <div>
                     <span className="font-medium text-primary">{song.title}</span>
                     <span className="text-sm text-muted-foreground"> - {song.artist}</span>
                 </div>
                 {song.addedByUsername && (
-                    <div className="text-xs text-custom-accent opacity-80 mt-0.5">
-                        Added by: {song.addedByUsername}
+                    <div className={cn(
+                        "text-xs opacity-80 mt-0.5",
+                        isOwnSong ? "text-custom-accent font-semibold" : "text-custom-secondary" // Different style for "Added by you"
+                    )}>
+                        Added by: {isOwnSong ? "You" : song.addedByUsername}
                     </div>
                 )}
             </div>
