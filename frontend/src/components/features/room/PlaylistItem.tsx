@@ -26,8 +26,8 @@ const PlaylistItem: React.FC<PlaylistItemProps> = ({ song, onRemove, currentUser
 
     return (
         <li className={cn(
-            "p-2 border-b border-border/30 last:border-b-0 hover:bg-muted/50 transition-colors ease-in-out duration-150 flex justify-between items-center group",
-            isOwnSong && "bg-primary/10" // Example: slightly different background for own songs
+            "p-2 border-b border-gray-200/30 last:border-b-0 hover:bg-muted/50 transition-colors ease-in-out duration-150 flex justify-between items-center group",
+            isOwnSong && "bg-primary/10" 
         )}>
             <div>
                 <div>
