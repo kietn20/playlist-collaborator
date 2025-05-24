@@ -29,6 +29,7 @@ const Playlist: React.FC<PlaylistProps> = ({ songs, username, onRemoveSong }) =>
                                     key={song.id}
                                     song={song}
                                     onRemove={() => onRemoveSong(song.id)} // Pass the song ID to the remove function
+                                    currentUsername={username}
                                 />
                             ))}
                         </ul>
