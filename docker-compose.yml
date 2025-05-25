@@ -13,7 +13,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5432:5432" # Host:Container
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -21,11 +21,11 @@ services:
   # --- Spring Boot Backend Service ---
   backend-app:
     build:
-      context: ./backend # Adjusted path to the backend project directory
+      context: ./backend
       dockerfile: Dockerfile
     container_name: playlist-backend
     ports:
-      - "8080:8080" # Host:Container for Spring Boot app
+      - "8080:8080"
     depends_on:
       - postgres-db
     environment:
@@ -39,7 +39,7 @@ services:
   # --- React Frontend Service (Nginx) ---
   frontend-app:
     build:
-      context: ./frontend # Path to the frontend project directory
+      context: ./frontend
       dockerfile: Dockerfile
     container_name: playlist-frontend
     ports:
