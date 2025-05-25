@@ -37,12 +37,8 @@ Desktop.ini
 # dist/
 # build/
 
-### Environment Files (if .env for docker-compose is at root and not backend/) ###
-# If your .env and docker-compose.yml for the *backend* are inside the 'backend' folder,
-# then 'backend/.env' should be in 'backend/.gitignore'.
-# If you decide to move docker-compose.yml and its .env to the *root* of PLAYLIST-COLLABORATOR,
-# then you would put '.env' here. Based on your screenshot, it's in 'backend/', so the
-# current 'backend/.gitignore' handling '.env' is correct.
+### Environment Files
+.env
 
 ### Other generated files specific to your overall project ###
 # Example: any top-level reports or logs
