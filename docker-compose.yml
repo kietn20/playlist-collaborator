@@ -1,0 +1,55 @@
+# File: PLAYLIST-COLLABORATOR/docker-compose.yml
+# Purpose: Defines and runs multi-container Docker applications for the entire project.
+
+version: '3.8'
+
+services:
+  # --- PostgreSQL Database Service ---
+  postgres-db:
+    image: postgres:15
+    container_name: playlist-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432" # Host:Container
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # --- Spring Boot Backend Service ---
+  backend-app:
+    build:
+      context: ./backend # Adjusted path to the backend project directory
+      dockerfile: Dockerfile
+    container_name: playlist-backend
+    ports:
+      - "8080:8080" # Host:Container for Spring Boot app
+    depends_on:
+      - postgres-db
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY}
+    restart: unless-stopped
+
+  # --- React Frontend Service (Nginx) ---
+  frontend-app:
+    build:
+      context: ./frontend # Path to the frontend project directory
+      dockerfile: Dockerfile
+    container_name: playlist-frontend
+    ports:
+      # Map host port 80 (or another like 5173 if 80 is taken) to Nginx's port 80 in the container
+      - "80:80" # Standard HTTP port for accessing the frontend
+      # If you prefer to use the Vite dev port for consistency for now:
+      # - "5173:80"
+    depends_on:
+      - backend-app
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
