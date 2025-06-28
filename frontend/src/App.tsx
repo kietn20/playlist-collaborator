@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
 import EntryModal from './components/features/entry/EntryModal';
 import RoomView from './components/layouts/RoomView';
