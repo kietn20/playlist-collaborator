@@ -5,6 +5,7 @@
 package com.example.playlistcollaborator.controller;
 
 import com.example.playlistcollaborator.dto.AddSongRequest;
+import com.example.playlistcollaborator.dto.PlaybackStateDto;
 import com.example.playlistcollaborator.dto.PlaylistSongDto;
 import com.example.playlistcollaborator.dto.RemoveSongRequest;
 import com.example.playlistcollaborator.dto.SongRemovedResponse;
@@ -15,6 +16,7 @@ import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
+import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.stereotype.Controller;
 
 @Controller // Use @Controller, not @RestController for WebSocket controllers
@@ -69,5 +71,16 @@ public class PlaylistController {
 
         log.info("Broadcasting removed song ID {} to /topic/room/{}/songRemoved", request.getSongId(), publicId);
         return new SongRemovedResponse(request.getSongId());
+    }
+
+    @MessageMapping("/room/{publicId}/playbackState")
+    @SendTo("/topic/room/{publicId}/playbackState")
+    public PlaybackStateDto syncPlaybackState(
+            @DestinationVariable String publicId,
+            @Payload PlaybackStateDto playbackState,
+            SimpMessageHeaderAccessor headerAccessor) { // For getting session attributes/user info
+
+        log.debug("Broadcasting playback state for room {}: {}", publicId, playbackState);
+        return playbackState; // Simply broadcast the received state to all subscribers
     }
 }
