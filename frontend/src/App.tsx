@@ -12,7 +12,8 @@ function App() {
     const [currentRoomId, setCurrentRoomId] = useState<string | null>(null);
     const [username, setUsername] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [currentRoomName, setCurrentRoomName] = useState<string | null>(null); // For displaying room name
+    const [currentRoomName, setCurrentRoomName] = useState<string | null>(null);
+    const [isLeader, setIsLeader] = useState<boolean>(false);
 
     const [playlistSongs, setPlaylistSongs] = useState<PlaylistSongDto[]>([]);
 
@@ -45,14 +46,16 @@ function App() {
     const handleJoinOrCreate = useCallback(async (user: string, roomIdToJoin?: string) => {
         console.log(`Attempting to join/create. User: ${user}, Room ID: ${roomIdToJoin || 'New Room'}`);
         setIsLoading(true);
-        setUsername(user); // Set username immediately
-        setPlaylistSongs([]); // Clear previous playlist on new room attempt
+        setUsername(user);
+        setPlaylistSongs([]);
 
         try {
             let finalRoomData: RoomDto;
+            let wasRoomCreated = false; // Flag to determine leadership
 
             if (roomIdToJoin) {
                 // --- Attempt to JOIN an existing room ---
+                setIsLeader(false); // If joining, you are a follower
                 console.log(`Fetching room ${roomIdToJoin}...`);
                 const response = await fetch(`${API_BASE_URL}/rooms/${roomIdToJoin}`);
                 if (!response.ok) { /* ... error handling ... */
@@ -64,6 +67,8 @@ function App() {
                 console.log('Joined room:', finalRoomData);
             } else {
                 // --- Attempt to CREATE a new room ---
+                setIsLeader(true); // If creating, you are the leader
+                wasRoomCreated = true;
                 console.log("Creating new room...");
                 const createDto: CreateRoomDto = { name: `${user}'s New Room` }; // Optional: Give it a default name
 
@@ -80,7 +85,9 @@ function App() {
                     throw new Error(errorData.message || `Failed to create room: ${response.statusText}`);
                 }
                 finalRoomData = await response.json() as RoomDto;
-                toast.success(`New room "${finalRoomData.publicId}" created!`);
+                // toast.success(`New room "${finalRoomData.publicId}" created!`);
+                toast.success(`New room "${finalRoomData.publicId}" created! You are the DJ.`);
+
                 console.log('Created room:', finalRoomData);
             }
 
@@ -175,6 +182,7 @@ function App() {
                     roomId={currentRoomId}
                     roomName={currentRoomName} // Pass roomName
                     username={username}
+                    isLeader={isLeader}
                     onLeaveRoom={handleLeaveRoom}
                     // Pass playlist state and song adding function
                     playlistSongs={playlistSongs}
