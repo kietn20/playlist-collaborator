@@ -6,12 +6,15 @@ import React from 'react';
 import HeaderControls from '../features/room/HeaderControls';
 import CurrentlyPlaying from '../features/room/CurrentlyPlaying';
 import QueueSidebar from '../features/room/QueueSidebar';
-import { PlaylistSongDto } from '@/types/dtos';
+import { PlaylistSongDto, PlaybackStateDto } from '@/types/dtos';
 
 interface RoomViewProps {
     roomId: string;
     roomName: string | null;
     username: string;
+    isLeader: boolean;
+    onSendPlaybackState: (state: Omit<PlaybackStateDto, 'triggeredBy'>) => void;
+    externalPlaybackState: PlaybackStateDto | null;
     onLeaveRoom: () => void;
     playlistSongs: PlaylistSongDto[];
     onAddSong: (title: string, artist: string) => void;
@@ -26,6 +29,9 @@ const RoomView: React.FC<RoomViewProps> = ({
     roomId,
     roomName,
     username,
+    isLeader,
+    onSendPlaybackState,
+    externalPlaybackState,
     onLeaveRoom,
     playlistSongs,
     onAddSong,
@@ -51,6 +57,9 @@ const RoomView: React.FC<RoomViewProps> = ({
                         <CurrentlyPlaying
                             currentSong={playlistSongs.length > 0 ? playlistSongs[0] : null}
                             onSongEnded={onSongEnded}
+                            isLeader={isLeader}
+                            onSendPlaybackState={onSendPlaybackState}
+                            externalPlaybackState={externalPlaybackState}
                         />
                     </div>
                     <aside className="w-1/4 h-full flex flex-col">
