@@ -7,6 +7,8 @@ import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { PlaylistSongDto, AddSongWsRequest, SongAddedWsMessage, SongRemovedWsMessage, RemoveSongWsRequest } from '@/types/dtos'; // Adjust path if types are in websocket.ts
 import toast from 'react-hot-toast';
+import { PlaybackStateDto } from '@/types/dtos';
+
 
 const WS_ENDPOINT = '/ws-playlist'; // Matches WebSocketConfig.java on backend
 // Note: When using Vite proxy, SockJS needs the full path if WS_ENDPOINT starts with '/',
@@ -14,24 +16,28 @@ const WS_ENDPOINT = '/ws-playlist'; // Matches WebSocketConfig.java on backend
 
 interface UsePlaylistWebSocketProps {
     roomId: string | null;
-    username: string | null; // For attributing added songs or other user-specific actions
-    onPlaylistUpdate: (newSong: PlaylistSongDto) => void; // Callback to update local playlist state
-    onSongRemoved: (removedSongId: string) => void; // Callback to handle song removal
-    onInitialPlaylist: (initialSongs: PlaylistSongDto[]) => void; // Callback to set the initial playlist
+    username: string | null;
+    isLeader: boolean;
+    onPlaylistUpdate: (newSong: PlaylistSongDto) => void;
+    onSongRemoved: (removedSongId: string) => void;
+    onPlaybackStateUpdate: (newState: PlaybackStateDto) => void;
+    onInitialPlaylist: (initialSongs: PlaylistSongDto[]) => void;
 }
 
 interface UsePlaylistWebSocketReturn {
     isConnected: boolean;
     sendAddSongMessage: (youtubeVideoId: string, title: string | undefined, artist: string | undefined, username: string) => void;
     sendRemoveSongMessage: (songId: string, /* Optional: username: string */) => void; 
-
+    sendPlaybackState: (state: Omit<PlaybackStateDto, 'triggeredBy'>) => void;
 }
 
 export const usePlaylistWebSocket = ({
     roomId,
-    // username, // Currently unused in send, but good to have
+    username,
+    isLeader,
     onPlaylistUpdate,
-    onSongRemoved, // <<< DESTRUCTURE NEW CALLBACK
+    onSongRemoved,
+    onPlaybackStateUpdate,
     // onInitialPlaylist, // Will be called if we fetch initial state via WS or combined API+WS
 }: UsePlaylistWebSocketProps): UsePlaylistWebSocketReturn => {
     const [stompClient, setStompClient] = useState<Client | null>(null);
@@ -39,6 +45,8 @@ export const usePlaylistWebSocket = ({
     const subscriptionRef = useRef<StompSubscription | null>(null);
     const songsSubscriptionRef = useRef<StompSubscription | null>(null); // Rename existing
     const removedSubscriptionRef = useRef<StompSubscription | null>(null); // For songRemoved
+    const playbackSubscriptionRef = useRef<StompSubscription | null>(null); // For playbackState
+
 
     // Function to determine SockJS URL correctly based on environment
     const getSockJsUrl = () => {
@@ -113,6 +121,24 @@ export const usePlaylistWebSocket = ({
                     }
                 });
 
+                // Subscribe to playback state updates
+                const playbackTopic = `/topic/room/${roomId}/playbackState`;
+                console.log(`[WS] Subscribing to ${playbackTopic}`);
+                playbackSubscriptionRef.current = client.subscribe(playbackTopic, (message: IMessage) => {
+                    try {
+                        const newState = JSON.parse(message.body) as PlaybackStateDto;
+                        // Ignore echoes: if the message was triggered by the current user, don't process it.
+                        if (newState.triggeredBy === username) {
+                            return;
+                        }
+                        console.log('[WS] Received playback state update:', newState);
+                        onPlaybackStateUpdate(newState); // Notify App/CurrentlyPlaying
+                    } catch (e) { 
+                        console.error("[WS] Error parsing playbackState message:", e, message.body);
+                        toast.error("Received an invalid playback state update.");
+                     }
+                });
+
             };
 
             client.onStompError = (frame) => {
@@ -147,17 +173,24 @@ export const usePlaylistWebSocket = ({
                     console.log('[WS] Unsubscribed from songs topic.');
                     songsSubscriptionRef.current = null;
                 }
+
                 if (removedSubscriptionRef.current) {
                     removedSubscriptionRef.current.unsubscribe();
                     console.log('[WS] Unsubscribed from songRemoved topic.');
                     removedSubscriptionRef.current = null;
                 }
+
+                if (playbackSubscriptionRef.current) {
+                    playbackSubscriptionRef.current.unsubscribe();
+                    playbackSubscriptionRef.current = null;
+                }
+
                 stompClient.deactivate() /* ... */;
                 setStompClient(null);
                 setIsConnected(false);
             }
         };
-    }, [roomId, onPlaylistUpdate, onSongRemoved, stompClient]); // Add onSongRemoved to deps
+    }, [roomId, username, onPlaybackStateUpdate, onPlaylistUpdate, onSongRemoved, stompClient]); // Add onSongRemoved to deps
 
     // --- Sending Messages ---
     const sendAddSongMessage = useCallback((youtubeVideoId: string, title: string | undefined, artist: string | undefined, senderUsername: string) => {
@@ -200,5 +233,29 @@ export const usePlaylistWebSocket = ({
         }
     }, [stompClient, roomId]);
 
-    return { isConnected, sendAddSongMessage, sendRemoveSongMessage };
+    const sendPlaybackState = useCallback((state: Omit<PlaybackStateDto, 'triggeredBy'>) => {
+        // Only the leader should send state updates
+        if (stompClient && stompClient.active && roomId && isLeader && username) {
+            const destination = `/app/room/${roomId}/playbackState`;
+            const message: PlaybackStateDto = {
+                ...state,
+                triggeredBy: username,
+            };
+            try {
+                stompClient.publish({
+                    destination: destination,
+                    body: JSON.stringify(message),
+                });
+                // Log only important events, not every sync, to avoid console spam
+                if (state.eventType !== 'sync') {
+                   console.log(`[WS] Sent playback state event '${state.eventType}' to ${destination}`);
+                }
+            } catch (error) { 
+                console.error("[WS] Error publishing playback state message:", error);
+                toast.error("Failed to send playback state update.");
+             }
+        }
+    }, [stompClient, roomId, isLeader, username]);
+
+    return { isConnected, sendAddSongMessage, sendRemoveSongMessage, sendPlaybackState};
 };

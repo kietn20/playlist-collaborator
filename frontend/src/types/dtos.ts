@@ -52,3 +52,13 @@ export interface SongRemovedWsMessage {
 
 // Message received from server when a song is added (this is just PlaylistSongDto)
 export type SongAddedWsMessage = PlaylistSongDto;
+
+export type PlaybackEventType = 'play' | 'pause' | 'seek' | 'sync';
+
+export interface PlaybackStateDto {
+    isPlaying: boolean;
+    currentTime: number;
+    videoId: string;
+    triggeredBy: string; // Username of the leader
+    eventType: PlaybackEventType;
+}
