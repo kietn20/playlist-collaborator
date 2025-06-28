@@ -5,6 +5,8 @@ import RoomView from './components/layouts/RoomView';
 import './index.css';
 import { RoomDto, CreateRoomDto, PlaylistSongDto } from './types/dtos'; // Make sure PlaylistSongDto is imported
 import { usePlaylistWebSocket } from './hooks/usePlaylistWebSocket'; // Import the hook
+import { PlaybackStateDto } from './types/dtos';
+
 
 const API_BASE_URL = '/api'; // Using Vite proxy, so path is relative to frontend host
 
@@ -14,6 +16,11 @@ function App() {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [currentRoomName, setCurrentRoomName] = useState<string | null>(null);
     const [isLeader, setIsLeader] = useState<boolean>(false);
+    const [playbackState, setPlaybackState] = useState<PlaybackStateDto | null>(null);
+
+    const handleWebSocketPlaybackUpdate = useCallback((newState: PlaybackStateDto) => {
+        setPlaybackState(newState);
+    }, []);
 
     const [playlistSongs, setPlaylistSongs] = useState<PlaylistSongDto[]>([]);
 
@@ -31,12 +38,14 @@ function App() {
         setPlaylistSongs(prevSongs => prevSongs.filter(song => song.id !== removedSongId));
     }, []);
 
-    const { isConnected: isWsConnected, sendAddSongMessage, sendRemoveSongMessage } = usePlaylistWebSocket({
+    const { isConnected: isWsConnected, sendAddSongMessage, sendRemoveSongMessage, sendPlaybackState } = usePlaylistWebSocket({
         roomId: currentRoomId,
         username: username,
-        onPlaylistUpdate: handleWebSocketPlaylistUpdate, // from previous step
-        onSongRemoved: handleWebSocketSongRemoved,     // <<< PASS NEW CALLBACK
-        onInitialPlaylist: (initialSongs) => { // Callback to set the initial playlist (currently not used by hook, REST provides it)
+        isLeader: isLeader,
+        onPlaybackStateUpdate: handleWebSocketPlaybackUpdate,
+        onPlaylistUpdate: handleWebSocketPlaylistUpdate,
+        onSongRemoved: handleWebSocketSongRemoved,
+        onInitialPlaylist: (initialSongs) => {
             setPlaylistSongs(initialSongs.sort((a, b) => new Date(a.addedAt).getTime() - new Date(b.addedAt).getTime()));
         }
     });
@@ -183,6 +192,8 @@ function App() {
                     roomName={currentRoomName} // Pass roomName
                     username={username}
                     isLeader={isLeader}
+                    onSendPlaybackState={sendPlaybackState}
+                    externalPlaybackState={playbackState}
                     onLeaveRoom={handleLeaveRoom}
                     // Pass playlist state and song adding function
                     playlistSongs={playlistSongs}
