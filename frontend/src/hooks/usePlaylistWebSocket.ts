@@ -29,10 +29,10 @@ interface UsePlaylistWebSocketReturn {
 
 export const usePlaylistWebSocket = ({
     roomId,
-    username, // Currently unused in send, but good to have
+    // username, // Currently unused in send, but good to have
     onPlaylistUpdate,
     onSongRemoved, // <<< DESTRUCTURE NEW CALLBACK
-    onInitialPlaylist, // Will be called if we fetch initial state via WS or combined API+WS
+    // onInitialPlaylist, // Will be called if we fetch initial state via WS or combined API+WS
 }: UsePlaylistWebSocketProps): UsePlaylistWebSocketReturn => {
     const [stompClient, setStompClient] = useState<Client | null>(null);
     const [isConnected, setIsConnected] = useState<boolean>(false);
