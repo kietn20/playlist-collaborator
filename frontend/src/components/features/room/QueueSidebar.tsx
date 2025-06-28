@@ -16,7 +16,7 @@ interface QueueSidebarProps {
      onAddSongViaForm: (youtubeVideoId: string, title?: string, artist?: string) => void;
 }
 
-const QueueSidebar: React.FC<QueueSidebarProps> = ({ username, roomId, playlistSongs, onAddSong, onRemoveSong, onAddSongViaForm }) => {
+const QueueSidebar: React.FC<QueueSidebarProps> = ({ username, roomId, playlistSongs, onRemoveSong, onAddSongViaForm }) => {
      return (
           <div className="flex flex-col h-full gap-4">
                <AddSongForm

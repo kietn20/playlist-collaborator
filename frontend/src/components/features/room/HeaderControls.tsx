@@ -19,7 +19,7 @@ interface HeaderControlsProps {
 
 const HeaderControls: React.FC<HeaderControlsProps> = ({ roomId, roomName, onLeave, isWsConnected, onSkipSong, canSkip }) => {
     const handleShare = async () => {
-        const roomUrl = `${window.location.origin}?roomId=${roomId}`; // Construct room URL
+        // const roomUrl = `${window.location.origin}?roomId=${roomId}`; // Construct room URL
         try {
             await navigator.clipboard.writeText(roomId); // Copy Room ID
             // To copy URL: await navigator.clipboard.writeText(roomUrl);
