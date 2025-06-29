@@ -5,7 +5,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import { PlaylistSongDto, AddSongWsRequest, SongAddedWsMessage, SongRemovedWsMessage, RemoveSongWsRequest } from '@/types/dtos'; // Adjust path if types are in websocket.ts
+import { PlaylistSongDto, AddSongWsRequest, SongAddedWsMessage, SongRemovedWsMessage, RemoveSongWsRequest, NextSongWsMessage } from '@/types/dtos'; // Adjust path if types are in websocket.ts
 import toast from 'react-hot-toast';
 import { PlaybackStateDto } from '@/types/dtos';
 
@@ -22,6 +22,7 @@ interface UsePlaylistWebSocketProps {
     onSongRemoved: (removedSongId: string) => void;
     onPlaybackStateUpdate: (newState: PlaybackStateDto) => void;
     onInitialPlaylist: (initialSongs: PlaylistSongDto[]) => void;
+    onNextSong: (message: NextSongWsMessage) => void;
 }
 
 interface UsePlaylistWebSocketReturn {
@@ -29,6 +30,7 @@ interface UsePlaylistWebSocketReturn {
     sendAddSongMessage: (youtubeVideoId: string, title: string | undefined, artist: string | undefined, username: string) => void;
     sendRemoveSongMessage: (songId: string, /* Optional: username: string */) => void; 
     sendPlaybackState: (state: Omit<PlaybackStateDto, 'triggeredBy'>) => void;
+    sendNextSongEvent: (nextSongId: string | null) => void;
 }
 
 export const usePlaylistWebSocket = ({
@@ -38,6 +40,7 @@ export const usePlaylistWebSocket = ({
     onPlaylistUpdate,
     onSongRemoved,
     onPlaybackStateUpdate,
+    onNextSong
     // onInitialPlaylist, // Will be called if we fetch initial state via WS or combined API+WS
 }: UsePlaylistWebSocketProps): UsePlaylistWebSocketReturn => {
     const [stompClient, setStompClient] = useState<Client | null>(null);
@@ -46,7 +49,7 @@ export const usePlaylistWebSocket = ({
     const songsSubscriptionRef = useRef<StompSubscription | null>(null); // Rename existing
     const removedSubscriptionRef = useRef<StompSubscription | null>(null); // For songRemoved
     const playbackSubscriptionRef = useRef<StompSubscription | null>(null); // For playbackState
-
+    const nextSongSubscriptionRef = useRef<StompSubscription | null>(null);
 
     // Function to determine SockJS URL correctly based on environment
     const getSockJsUrl = () => {
@@ -139,6 +142,14 @@ export const usePlaylistWebSocket = ({
                      }
                 });
 
+                // Subscribe to next song events
+                const nextSongTopic = `/topic/room/${roomId}/nextSong`;
+                nextSongSubscriptionRef.current = client.subscribe(nextSongTopic, (message: IMessage) => {
+                    const nextSongMessage = JSON.parse(message.body) as NextSongWsMessage;
+                    // Don't ignore echo here, everyone needs to advance their queue
+                    onNextSong(nextSongMessage);
+                });
+
             };
 
             client.onStompError = (frame) => {
@@ -185,12 +196,14 @@ export const usePlaylistWebSocket = ({
                     playbackSubscriptionRef.current = null;
                 }
 
+                if (nextSongSubscriptionRef.current) nextSongSubscriptionRef.current.unsubscribe();
+
                 stompClient.deactivate() /* ... */;
                 setStompClient(null);
                 setIsConnected(false);
             }
         };
-    }, [roomId, username, onPlaybackStateUpdate, onPlaylistUpdate, onSongRemoved, stompClient]); // Add onSongRemoved to deps
+    }, [roomId, onNextSong, username, onPlaybackStateUpdate, onPlaylistUpdate, onSongRemoved, stompClient]); // Add onSongRemoved to deps
 
     // --- Sending Messages ---
     const sendAddSongMessage = useCallback((youtubeVideoId: string, title: string | undefined, artist: string | undefined, senderUsername: string) => {
@@ -257,5 +270,14 @@ export const usePlaylistWebSocket = ({
         }
     }, [stompClient, roomId, isLeader, username]);
 
-    return { isConnected, sendAddSongMessage, sendRemoveSongMessage, sendPlaybackState};
+    const sendNextSongEvent = useCallback((nextSongId: string | null) => {
+        if (stompClient && stompClient.active && roomId && username) {
+            const destination = `/app/room/${roomId}/nextSong`; // New backend endpoint
+            const message: NextSongWsMessage = { nextSongId, triggeredBy: username };
+            stompClient.publish({ destination, body: JSON.stringify(message) });
+            console.log('[WS] Sent nextSong event');
+        }
+    }, [stompClient, roomId, username]);
+
+    return { isConnected, sendAddSongMessage, sendRemoveSongMessage, sendPlaybackState, sendNextSongEvent};
 };
