@@ -27,19 +27,28 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
     const playerRef = useRef<YouTubePlayer | null>(null);
     const [isPlayerReady, setIsPlayerReady] = useState(false);
 
+    // --- Leader's LOCAL UI state ---
+    const [leaderCurrentTime, setLeaderCurrentTime] = useState(0);
+    const [leaderDuration, setLeaderDuration] = useState(0);
+    const [isLeaderPlaying, setIsLeaderPlaying] = useState(false);
+
     // --- Local state for player (primarily for Leader's UI) ---
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [currentTime, setCurrentTime] = useState(0);
-    const [duration, setDuration] = useState(0);
+    // const [isPlaying, setIsPlaying] = useState(false);
+    const [, setCurrentTime] = useState(0);
+    // const [duration, setDuration] = useState(0);
 
     // Interval reference for periodic syncs and time updates
     const syncIntervalRef = useRef<number | null>(null);
-    const timeUpdateIntervalRef = useRef<number | null>(null);
+    // const timeUpdateIntervalRef = useRef<number | null>(null);
 
-    // Function to clear intervals to prevent memory leaks
+    // // Function to clear intervals to prevent memory leaks
+    // const clearIntervals = () => {
+    //     if (syncIntervalRef.current) clearInterval(syncIntervalRef.current);
+    //     if (timeUpdateIntervalRef.current) clearInterval(timeUpdateIntervalRef.current);
+    // };
+
     const clearIntervals = () => {
         if (syncIntervalRef.current) clearInterval(syncIntervalRef.current);
-        if (timeUpdateIntervalRef.current) clearInterval(timeUpdateIntervalRef.current);
     };
 
     const handlePlayerReady: YouTubeProps['onReady'] = (event) => {
@@ -48,29 +57,33 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
     };
 
     const handlePlayerStateChange: YouTubeProps['onStateChange'] = async (event) => {
+        // This handler is now PRIMARILY for the LEADER to broadcast its state
+        if (!isLeader) return;
+
         const player = event.target;
         const playerState = await player.getPlayerState();
-        setIsPlaying(playerState === YouTube.PlayerState.PLAYING);
-        setDuration(await player.getDuration());
+        const isPlayingNow = playerState === YouTube.PlayerState.PLAYING;
+
+        setIsLeaderPlaying(isPlayingNow);
+        setLeaderDuration(await player.getDuration());
+        setLeaderCurrentTime(await player.getCurrentTime());
 
         if (playerState === YouTube.PlayerState.ENDED) {
-            onSongEnded(currentSong?.id || null);
+            onSongEnded(currentSong?.id || null); // Leader is responsible for signaling song end
+            return; // Stop further state broadcast for the ended song
         }
 
-        // --- Leader Logic: Broadcast state changes on key events ---
-        if (isLeader) {
-            let eventType: PlaybackEventType | null = null;
-            if (playerState === YouTube.PlayerState.PLAYING) eventType = 'play';
-            if (playerState === YouTube.PlayerState.PAUSED) eventType = 'pause';
+        let eventType: PlaybackEventType | null = null;
+        if (playerState === YouTube.PlayerState.PLAYING) eventType = 'play';
+        if (playerState === YouTube.PlayerState.PAUSED) eventType = 'pause';
 
-            if (eventType && currentSong?.youtubeVideoId) {
-                onSendPlaybackState({
-                    eventType: eventType,
-                    isPlaying: playerState === YouTube.PlayerState.PLAYING,
-                    currentTime: await player.getCurrentTime(),
-                    videoId: currentSong.youtubeVideoId,
-                });
-            }
+        if (eventType && currentSong?.youtubeVideoId) {
+            onSendPlaybackState({
+                eventType: eventType,
+                isPlaying: isPlayingNow,
+                currentTime: await player.getCurrentTime(),
+                videoId: currentSong.youtubeVideoId,
+            });
         }
     };
 
@@ -100,19 +113,12 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
 
     // --- Leader Logic: Periodic Syncing ---
     useEffect(() => {
-        clearIntervals(); // Clear old intervals on re-render
-
-        if (isLeader && isPlayerReady && playerRef.current && isPlaying && currentSong?.youtubeVideoId) {
+        clearIntervals();
+        if (isLeader && isPlayerReady && playerRef.current && isLeaderPlaying && currentSong?.youtubeVideoId) {
             const videoId = currentSong.youtubeVideoId;
-            // Update local time display
-            timeUpdateIntervalRef.current = window.setInterval(async () => {
-                const currentTime = await (playerRef.current?.getCurrentTime() || Promise.resolve(0));
-                setCurrentTime(currentTime);
-            }, 500);
-
-            // Send sync message periodically
             syncIntervalRef.current = window.setInterval(async () => {
-                const currentTime = await (playerRef.current?.getCurrentTime() || Promise.resolve(0));
+                const currentTime = await playerRef.current?.getCurrentTime() || 0;
+                setLeaderCurrentTime(currentTime); // Update leader's own seek bar
                 onSendPlaybackState({
                     eventType: 'sync',
                     isPlaying: true,
@@ -121,19 +127,18 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
                 });
             }, SYNC_INTERVAL_MS);
         }
+        return clearIntervals;
+    }, [isLeader, isPlayerReady, isLeaderPlaying, currentSong, onSendPlaybackState]);
 
-        return clearIntervals; // Cleanup on unmount or dependency change
-    }, [isLeader, isPlayerReady, isPlaying, currentSong, onSendPlaybackState]);
     // --- Follower Logic: React to External State ---
     useEffect(() => {
-        const syncFollowerState = async () => {
-            if (!isLeader && playerRef.current && externalPlaybackState && currentSong?.youtubeVideoId === externalPlaybackState.videoId) {
-                const player = playerRef.current;
-                const localTime = await player.getCurrentTime();
+        // This effect ONLY runs for followers to sync their player
+        if (!isLeader && playerRef.current && externalPlaybackState && currentSong?.youtubeVideoId === externalPlaybackState.videoId) {
+            const syncPlayer = async () => {
+                const player = playerRef.current!;
                 const remoteTime = externalPlaybackState.currentTime;
-                const timeDiff = Math.abs(localTime - remoteTime);
 
-                // Correct play/pause state
+                // Correct play/pause state FIRST
                 const playerState = await player.getPlayerState();
                 if (externalPlaybackState.isPlaying && playerState !== YouTube.PlayerState.PLAYING) {
                     console.log('[Follower] Correcting state to PLAY');
@@ -143,15 +148,18 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
                     player.pauseVideo();
                 }
 
-                // Correct time if drifted too far
+                // Then correct time if needed, AFTER play/pause is handled
+                const localTime = await player.getCurrentTime();
+                const timeDiff = Math.abs(localTime - remoteTime);
+
                 if (timeDiff > SYNC_THRESHOLD_S) {
                     console.log(`[Follower] Resyncing time. Local: ${localTime.toFixed(2)}, Remote: ${remoteTime.toFixed(2)}, Diff: ${timeDiff.toFixed(2)}`);
                     player.seekTo(remoteTime, true);
                 }
-            }
-        };
-
-        syncFollowerState();
+            };
+            
+            syncPlayer();
+        }
     }, [externalPlaybackState, isLeader, currentSong]);
 
 
@@ -194,13 +202,8 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
                         {/* Leader gets custom controls */}
                         {isLeader && isPlayerReady && (
                             <div className="w-full max-w-md flex flex-col items-center gap-2 mt-2">
-                                <PlayPauseButton isPlaying={isPlaying} onTogglePlay={handleTogglePlay} />
-                                <SeekBar
-                                    currentTime={currentTime}
-                                    duration={duration}
-                                    onSeek={handleSeek}
-                                    disabled={!isPlayerReady}
-                                />
+                                <PlayPauseButton isPlaying={isLeaderPlaying} onTogglePlay={handleTogglePlay} disabled={!isPlayerReady} />
+                                <SeekBar currentTime={leaderCurrentTime} duration={leaderDuration} onSeek={handleSeek} disabled={!isPlayerReady} />
                             </div>
                         )}
                     </div>
