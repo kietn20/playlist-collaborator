@@ -1,6 +1,4 @@
-// File: src/components/layouts/RoomView.tsx
-// Purpose: Main layout for the collaborative room view (header, columns).
-// Location: src/components/layouts/
+// File: frontend/src/components/layouts/RoomView.tsx
 
 import React from 'react';
 import HeaderControls from '../features/room/HeaderControls';
@@ -13,16 +11,15 @@ interface RoomViewProps {
     roomName: string | null;
     username: string;
     isLeader: boolean;
-    onSendPlaybackState: (state: Omit<PlaybackStateDto, 'triggeredBy'>) => void;
+    isWsConnected: boolean;
+    playlistSongs: PlaylistSongDto[];
     externalPlaybackState: PlaybackStateDto | null;
     onLeaveRoom: () => void;
-    playlistSongs: PlaylistSongDto[];
-    onAddSong: (title: string, artist: string) => void;
-    onRemoveSong: (songId: string) => void;
-    isWsConnected: boolean;
-    onAddSongFromApp: (youtubeVideoId: string, title?: string, artist?: string) => void;
-    onSongEnded: (songId: string | null) => void;
     onSkipSong: () => void;
+    onSongEnded: (songId: string | null) => void;
+    onRemoveSong: (songId: string) => void;
+    onAddSong: (youtubeVideoId: string, title?: string, artist?: string) => void;
+    onSendPlaybackState: (state: Omit<PlaybackStateDto, 'triggeredBy'>) => void;
 }
 
 const RoomView: React.FC<RoomViewProps> = ({
@@ -30,16 +27,15 @@ const RoomView: React.FC<RoomViewProps> = ({
     roomName,
     username,
     isLeader,
-    onSendPlaybackState,
+    isWsConnected,
+    playlistSongs,
     externalPlaybackState,
     onLeaveRoom,
-    playlistSongs,
-    onAddSong,
-    onRemoveSong,
-    isWsConnected,
-    onAddSongFromApp,
-    onSongEnded,
     onSkipSong,
+    onSongEnded,
+    onRemoveSong,
+    onAddSong,
+    onSendPlaybackState,
 }) => {
     return (
         <div className="flex flex-col h-screen p-4 bg-background text-foreground font-sans">
@@ -67,9 +63,8 @@ const RoomView: React.FC<RoomViewProps> = ({
                             username={username}
                             roomId={roomId}
                             playlistSongs={playlistSongs}
-                            onAddSong={onAddSong}
+                            onAddSong={onAddSong} // Pass it down
                             onRemoveSong={onRemoveSong}
-                            onAddSongViaForm={onAddSongFromApp}
                         />
                     </aside>
                 </div>
