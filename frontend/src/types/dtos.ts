@@ -62,3 +62,8 @@ export interface PlaybackStateDto {
     triggeredBy: string; // Username of the leader
     eventType: PlaybackEventType;
 }
+
+export interface NextSongWsMessage {
+    nextSongId: string | null; // ID of the next song, or null if playlist is empty
+    triggeredBy: string;
+}
