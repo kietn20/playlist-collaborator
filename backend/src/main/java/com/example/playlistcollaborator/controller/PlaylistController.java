@@ -5,6 +5,7 @@
 package com.example.playlistcollaborator.controller;
 
 import com.example.playlistcollaborator.dto.AddSongRequest;
+import com.example.playlistcollaborator.dto.NextSongMessageDto;
 import com.example.playlistcollaborator.dto.PlaybackStateDto;
 import com.example.playlistcollaborator.dto.PlaylistSongDto;
 import com.example.playlistcollaborator.dto.RemoveSongRequest;
@@ -29,12 +30,14 @@ public class PlaylistController {
     /**
      * Handles requests to add a song to a specific room's playlist.
      * Clients send messages to destinations like "/app/room/{publicId}/addSong".
-     * The returned PlaylistSongDto is broadcast to all subscribers of "/topic/room/{publicId}/songs".
+     * The returned PlaylistSongDto is broadcast to all subscribers of
+     * "/topic/room/{publicId}/songs".
      *
      * @param publicId The public ID of the room from the destination path.
-     * @param request The payload of the message, containing song title and artist.
+     * @param request  The payload of the message, containing song title and artist.
      * @return The DTO of the newly added song, which will be broadcast.
-     * @throws Exception if song cannot be added (e.g., room not found - handled by service/exception handler).
+     * @throws Exception if song cannot be added (e.g., room not found - handled by
+     *                   service/exception handler).
      */
     @MessageMapping("/room/{publicId}/addSong") // Listens for messages sent to this destination
     @SendTo("/topic/room/{publicId}/songs") // Broadcasts the return value to this topic destination
@@ -43,7 +46,8 @@ public class PlaylistController {
             @Payload AddSongRequest request) throws Exception { // Extract message body
 
         // LOG THE INCOMING REQUEST DTO
-        log.info("PlaylistController received AddSongRequest: {}", request.toString()); // Use .toString() from Lombok @Data
+        log.info("PlaylistController received AddSongRequest: {}", request.toString()); // Use .toString() from Lombok
+                                                                                        // @Data
 
         log.info("Received request to add song {} - {} (VideoID: {}) to room {} by user {}",
                 request.getTitle(), request.getArtist(), request.getYoutubeVideoId(), publicId, request.getUsername());
@@ -82,5 +86,12 @@ public class PlaylistController {
 
         log.debug("Broadcasting playback state for room {}: {}", publicId, playbackState);
         return playbackState; // Simply broadcast the received state to all subscribers
+    }
+
+    @MessageMapping("/room/{publicId}/nextSong")
+    @SendTo("/topic/room/{publicId}/nextSong")
+    public NextSongMessageDto nextSong(@DestinationVariable String publicId, @Payload NextSongMessageDto message) {
+        log.info("Relaying nextSong event for room {}", publicId);
+        return message;
     }
 }
