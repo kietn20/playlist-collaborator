@@ -38,7 +38,7 @@ function App() {
         setPlaylistSongs(prevSongs => prevSongs.filter(song => song.id !== removedSongId));
     }, []);
 
-    const { isConnected: isWsConnected, sendAddSongMessage, sendRemoveSongMessage, sendPlaybackState } = usePlaylistWebSocket({
+    const { isConnected: isWsConnected, sendAddSongMessage, sendRemoveSongMessage, sendPlaybackState, sendNextSongEvent } = usePlaylistWebSocket({
         roomId: currentRoomId,
         username: username,
         isLeader: isLeader,
@@ -47,7 +47,12 @@ function App() {
         onSongRemoved: handleWebSocketSongRemoved,
         onInitialPlaylist: (initialSongs) => {
             setPlaylistSongs(initialSongs.sort((a, b) => new Date(a.addedAt).getTime() - new Date(b.addedAt).getTime()));
-        }
+        },
+        onNextSong: () => {
+            // Everyone, leader or follower, runs this logic when they get the message
+            console.log('[App] Received next song event.');
+            setPlaylistSongs(prev => prev.slice(1)); // Advance queue for everyone
+        },
     });
 
 
@@ -60,7 +65,7 @@ function App() {
 
         try {
             let finalRoomData: RoomDto;
-            let wasRoomCreated = false; // Flag to determine leadership
+            // let wasRoomCreated = false; // Flag to determine leadership
 
             if (roomIdToJoin) {
                 // --- Attempt to JOIN an existing room ---
@@ -77,7 +82,7 @@ function App() {
             } else {
                 // --- Attempt to CREATE a new room ---
                 setIsLeader(true); // If creating, you are the leader
-                wasRoomCreated = true;
+                // wasRoomCreated = true;
                 console.log("Creating new room...");
                 const createDto: CreateRoomDto = { name: `${user}'s New Room` }; // Optional: Give it a default name
 
@@ -118,45 +123,51 @@ function App() {
     }, []); // Dependencies will be username if used in API calls, but it's set right before.
 
     const handleSongEnded = useCallback((endedSongId: string | null) => {
-        console.log(`[App] Song ended, ID: ${endedSongId}`);
-        setPlaylistSongs(prevSongs => {
-            if (prevSongs.length === 0) return []; // No songs to remove
+        // console.log(`[App] Song ended, ID: ${endedSongId}`);
+        // setPlaylistSongs(prevSongs => {
+        //     if (prevSongs.length === 0) return []; // No songs to remove
 
-            // Ensure the song that ended is indeed the one at the top of the queue
-            if (endedSongId && prevSongs[0] && prevSongs[0].id === endedSongId) {
-                const newPlaylist = prevSongs.slice(1); // Remove the first song
-                if (newPlaylist.length > 0) {
-                    toast.success(`Now playing: ${newPlaylist[0].title}`);
-                } else {
-                    toast.success("Playlist finished!");
-                }
-                return newPlaylist;
-            } else if (!endedSongId && prevSongs.length > 0) {
-                // If no endedSongId provided but queue wasn't empty, assume first song ended
-                console.warn("[App] Song ended without specific ID, advancing queue.");
-                const newPlaylist = prevSongs.slice(1);
-                if (newPlaylist.length > 0) {
-                    toast.success(`Now playing: ${newPlaylist[0].title}`);
-                } else {
-                    toast.success("Playlist finished!");
-                }
-                return newPlaylist;
-            }
-            return prevSongs; // No change if IDs don't match or queue was empty
-        });
-    }, []); // No direct dependencies here as it operates on state setter
+        //     // Ensure the song that ended is indeed the one at the top of the queue
+        //     if (endedSongId && prevSongs[0] && prevSongs[0].id === endedSongId) {
+        //         const newPlaylist = prevSongs.slice(1); // Remove the first song
+        //         if (newPlaylist.length > 0) {
+        //             toast.success(`Now playing: ${newPlaylist[0].title}`);
+        //         } else {
+        //             toast.success("Playlist finished!");
+        //         }
+        //         return newPlaylist;
+        //     } else if (!endedSongId && prevSongs.length > 0) {
+        //         // If no endedSongId provided but queue wasn't empty, assume first song ended
+        //         console.warn("[App] Song ended without specific ID, advancing queue.");
+        //         const newPlaylist = prevSongs.slice(1);
+        //         if (newPlaylist.length > 0) {
+        //             toast.success(`Now playing: ${newPlaylist[0].title}`);
+        //         } else {
+        //             toast.success("Playlist finished!");
+        //         }
+        //         return newPlaylist;
+        //     }
+        //     return prevSongs; // No change if IDs don't match or queue was empty
+        // });
+        if (!isLeader) return; // Only the leader's "song ended" matters
+
+        console.log(`[App] LEADER's song ended, ID: ${endedSongId}`);
+        const nextSong = playlistSongs.length > 1 ? playlistSongs[1] : null;
+        toast.success(nextSong ? `Now playing: ${nextSong.title}` : 'Playlist finished!');
+
+        // Leader tells everyone to advance to the next song
+        sendNextSongEvent(nextSong?.id || null);
+
+    }, [isLeader, playlistSongs, sendNextSongEvent]);
+    // }, []); // No direct dependencies here as it operates on state setter
 
     const handleSkipSong = useCallback(() => {
-        if (playlistSongs.length > 0) {
-            const currentSongToSkip = playlistSongs[0];
-            console.log(`[App] Skipping song: ${currentSongToSkip.title}, ID: ${currentSongToSkip.id}`);
-            // Call handleSongEnded, as the logic is the same: advance the playlist
-            // This also benefits from the toast messages in handleSongEnded
-            handleSongEnded(currentSongToSkip.id);
-        } else {
-            toast.error("No song to skip!");
+        if (isLeader && playlistSongs.length > 0) {
+            const nextSong = playlistSongs.length > 1 ? playlistSongs[1] : null;
+            sendNextSongEvent(nextSong?.id || null);
         }
-    }, [playlistSongs, handleSongEnded]); // Include playlistSongs and handleSongEnded as dependencies
+    }, [isLeader, playlistSongs, sendNextSongEvent]);
+
 
     // --- Leave Room Logic ---
     const handleLeaveRoom = useCallback(() => {
