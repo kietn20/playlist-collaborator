@@ -1,4 +1,4 @@
-// File: frontend/src/App.tsx (Corrected)
+// File: frontend/src/App.tsx
 
 import { useState, useCallback } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
@@ -22,10 +22,8 @@ function App() {
 
     const handleWebSocketSongAdded = useCallback((newSong: PlaylistSongDto) => {
         setPlaylistSongs(prevSongs => {
-            // Avoid adding duplicates if a message is somehow received twice
             if (prevSongs.some(song => song.id === newSong.id)) return prevSongs;
             const updatedList = [...prevSongs, newSong];
-            // Sort by 'addedAt' to ensure order is always correct
             return updatedList.sort((a, b) => new Date(a.addedAt).getTime() - new Date(b.addedAt).getTime());
         });
     }, []);
@@ -40,9 +38,7 @@ function App() {
 
     const handleWebSocketNextSong = useCallback((message: NextSongWsMessage) => {
         console.log(`[App] Received next song event, triggered by ${message.triggeredBy}.`);
-        // Crucial: Reset playback state to prevent applying old state to new song
         setPlaybackState(null);
-        // All clients (leader and followers) advance their queue based on this single event
         setPlaylistSongs(prev => prev.slice(1));
     }, []);
 
@@ -144,14 +140,12 @@ function App() {
                     externalPlaybackState={playbackState}
                     onLeaveRoom={handleLeaveRoom}
                     playlistSongs={playlistSongs}
-                    onAddSong={(title: string, artist: string) => {
-                        sendAddSongMessage('', title, artist, username);
+                    // This is the SINGLE, CLEAN prop for adding songs.
+                    onAddSong={(youtubeVideoId, title, artist) => {
+                        sendAddSongMessage(youtubeVideoId, title, artist, username);
                     }}
                     onRemoveSong={sendRemoveSongMessage}
                     isWsConnected={isWsConnected}
-                    onAddSongFromApp={(youtubeVideoId: string, title?: string, artist?: string) => {
-                        sendAddSongMessage(youtubeVideoId, title || '', artist || '', username);
-                    }}
                     onSongEnded={handleSongEnded}
                     onSkipSong={handleSkipSong}
                 />
