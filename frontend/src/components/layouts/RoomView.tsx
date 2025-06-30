@@ -1,4 +1,4 @@
-// File: frontend/src/components/layouts/RoomView.tsx
+// File: src/components/layouts/RoomView.tsx
 
 import React from 'react';
 import HeaderControls from '../features/room/HeaderControls';
@@ -63,7 +63,7 @@ const RoomView: React.FC<RoomViewProps> = ({
                             username={username}
                             roomId={roomId}
                             playlistSongs={playlistSongs}
-                            onAddSong={onAddSong} // Pass it down
+                            onAddSong={onAddSong}
                             onRemoveSong={onRemoveSong}
                         />
                     </aside>
