@@ -1,4 +1,4 @@
-// File: frontend/src/components/features/room/CurrentlyPlaying.tsx (Corrected - Final Version)
+// File: frontend/src/components/features/room/CurrentlyPlaying.tsx (Final, Final Corrected Version)
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import YouTube, { YouTubePlayer, YouTubeProps } from 'react-youtube';
@@ -44,11 +44,12 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
     const handlePlayerStateChange: YouTubeProps['onStateChange'] = (event) => {
         if (!isLeader || !playerRef.current) return;
 
-        const playerState = playerRef.current.getPlayerState();
+        const player = playerRef.current;
+        const playerState = player.getPlayerState();
         const isPlayingNow = playerState === YouTube.PlayerState.PLAYING;
 
         setIsLeaderPlaying(isPlayingNow);
-        setLeaderDuration(playerRef.current.getDuration());
+        setLeaderDuration(player.getDuration());
 
         if (playerState === YouTube.PlayerState.ENDED) {
             clearIntervals();
@@ -64,9 +65,24 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
             onSendPlaybackState({
                 eventType: eventType,
                 isPlaying: isPlayingNow,
-                currentTime: playerRef.current.getCurrentTime(),
+                currentTime: player.getCurrentTime(),
                 videoId: currentSong.youtubeVideoId,
             });
+        }
+    };
+
+    const handlePlayerError: YouTubeProps['onError'] = (event) => {
+        console.error("YouTube Player Error. Event Data:", event.data, "Song:", currentSong);
+        let errorMessage = "The video could not be played.";
+        switch (event.data) {
+            case 2: errorMessage = "Invalid video ID or request."; break;
+            case 5: errorMessage = "Video cannot be played in HTML5 player."; break;
+            case 100: errorMessage = "Video not found."; break;
+            case 101: case 150: errorMessage = "Video owner does not allow embedded playback."; break;
+        }
+        toast.error(errorMessage);
+        if (isLeader && currentSong?.id) {
+            onSongEnded(currentSong.id);
         }
     };
 
@@ -86,12 +102,13 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
         setLeaderCurrentTime(newTime);
         onSendPlaybackState({
             eventType: 'seek',
-            isPlaying: true,
+            isPlaying: true, // Assume play after seek
             currentTime: newTime,
             videoId: currentSong.youtubeVideoId,
         });
     }, [currentSong, onSendPlaybackState]);
 
+    // LEADER: Periodic Syncing and local time updates
     useEffect(() => {
         clearIntervals();
         if (isLeader && isPlayerReady && playerRef.current && isLeaderPlaying && currentSong?.youtubeVideoId) {
@@ -110,6 +127,7 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
         return clearIntervals;
     }, [isLeader, isPlayerReady, isLeaderPlaying, currentSong, onSendPlaybackState, clearIntervals]);
 
+    // FOLLOWER: React to External State
     useEffect(() => {
         const player = playerRef.current;
         if (isLeader || !isPlayerReady || !player || !externalPlaybackState || currentSong?.youtubeVideoId !== externalPlaybackState.videoId) {
@@ -127,11 +145,17 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
                 }
                 break;
             case 'pause':
-                if (playerState !== YouTube.PlayerState.PAUSED) player.pauseVideo();
+                if (playerState !== YouTube.PlayerState.PAUSED) {
+                    player.pauseVideo();
+                }
                 break;
             case 'seek':
                 player.seekTo(remoteState.currentTime, true);
-                if (remoteState.isPlaying && playerState !== YouTube.PlayerState.PLAYING) player.playVideo();
+                if (remoteState.isPlaying && playerState !== YouTube.PlayerState.PLAYING) {
+                    player.playVideo();
+                } else if (!remoteState.isPlaying && playerState === YouTube.PlayerState.PLAYING) {
+                    player.pauseVideo();
+                }
                 break;
             case 'sync':
                 if (remoteState.isPlaying && playerState === YouTube.PlayerState.PLAYING) {
@@ -147,23 +171,23 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
         }
     }, [externalPlaybackState, isLeader, isPlayerReady, currentSong]);
 
-    // This effect was missing, causing new songs not to load on the player
+    // This effect handles loading a new song into the player when `currentSong` changes for both Leader and Follower
     useEffect(() => {
         if (isPlayerReady && playerRef.current && currentSong?.youtubeVideoId) {
+            console.log(`Loading new video for ${isLeader ? 'Leader' : 'Follower'}: ${currentSong.title}`);
             playerRef.current.loadVideoById(currentSong.youtubeVideoId);
         } else if (!currentSong && playerRef.current && typeof playerRef.current.stopVideo === 'function') {
             playerRef.current.stopVideo();
         }
-    }, [currentSong, isPlayerReady]);
+    }, [currentSong, isPlayerReady, isLeader]);
 
     const playerOpts: YouTubeProps['opts'] = {
         height: '100%', width: '100%',
         playerVars: {
             autoplay: isLeader ? 1 : 0,
-            controls: isLeader ? 1 : 0, // Follower has no controls, fully programmatic
+            controls: isLeader ? 1 : 0,
             modestbranding: 1, rel: 0,
-            // Important for programmatic control
-            disablekb: 1, // Disable keyboard controls for follower to prevent accidental interaction
+            disablekb: isLeader ? 0 : 1,
         },
     };
 
@@ -178,6 +202,7 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
                             opts={playerOpts}
                             onReady={handlePlayerReady}
                             onStateChange={handlePlayerStateChange}
+                            onError={handlePlayerError}
                             className="w-full h-full rounded-md overflow-hidden shadow-lg"
                         />
                     </div>
