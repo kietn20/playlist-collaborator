@@ -23,7 +23,7 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
 }) => {
     const playerRef = useRef<YouTubePlayer | null>(null);
     const [isPlayerReady, setIsPlayerReady] = useState(false);
-    
+
     const [leaderCurrentTime, setLeaderCurrentTime] = useState(0);
     const [leaderDuration, setLeaderDuration] = useState(0);
     const [isLeaderPlaying, setIsLeaderPlaying] = useState(false);
@@ -41,16 +41,16 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
         setIsPlayerReady(true);
     };
 
-    const handlePlayerStateChange: YouTubeProps['onStateChange'] = (event) => {
+    const handlePlayerStateChange: YouTubeProps['onStateChange'] = async () => {
         if (!isLeader || !playerRef.current) return;
 
         const player = playerRef.current;
-        const playerState = player.getPlayerState();
+        const playerState = await player.getPlayerState();
         const isPlayingNow = playerState === YouTube.PlayerState.PLAYING;
-        
+
         setIsLeaderPlaying(isPlayingNow);
-        setLeaderDuration(player.getDuration());
-        
+        setLeaderDuration(await player.getDuration());
+
         if (playerState === YouTube.PlayerState.ENDED) {
             clearIntervals();
             onSongEnded(currentSong?.id || null);
@@ -60,12 +60,12 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
         let eventType: PlaybackEventType | null = null;
         if (playerState === YouTube.PlayerState.PLAYING) eventType = 'play';
         if (playerState === YouTube.PlayerState.PAUSED) eventType = 'pause';
-        
+
         if (eventType && currentSong?.youtubeVideoId) {
             onSendPlaybackState({
                 eventType: eventType,
                 isPlaying: isPlayingNow,
-                currentTime: player.getCurrentTime(),
+                currentTime: await player.getCurrentTime(),
                 videoId: currentSong.youtubeVideoId,
             });
         }
@@ -86,9 +86,9 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
         }
     };
 
-    const handleTogglePlay = useCallback(() => {
+    const handleTogglePlay = useCallback(async () => {
         if (!playerRef.current) return;
-        const playerState = playerRef.current.getPlayerState();
+        const playerState = await playerRef.current.getPlayerState();
         if (playerState === YouTube.PlayerState.PLAYING) {
             playerRef.current.pauseVideo();
         } else {
@@ -102,7 +102,7 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
         setLeaderCurrentTime(newTime);
         onSendPlaybackState({
             eventType: 'seek',
-            isPlaying: true, // Assume play after seek
+            isPlaying: true,
             currentTime: newTime,
             videoId: currentSong.youtubeVideoId,
         });
@@ -113,15 +113,21 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
         clearIntervals();
         if (isLeader && isPlayerReady && playerRef.current && isLeaderPlaying && currentSong?.youtubeVideoId) {
             const videoId = currentSong.youtubeVideoId;
-            
+
             timeUpdateIntervalRef.current = window.setInterval(() => {
-                setLeaderCurrentTime(playerRef.current?.getCurrentTime() || 0);
+                // IIFE (Immediately Invoked Function Expression) to use async inside setInterval
+                (async () => {
+                    setLeaderCurrentTime(await playerRef.current?.getCurrentTime() || 0);
+                })();
             }, 500);
 
             syncIntervalRef.current = window.setInterval(() => {
-                const player = playerRef.current;
-                if (!player) return;
-                onSendPlaybackState({ eventType: 'sync', isPlaying: true, currentTime: player.getCurrentTime(), videoId });
+                (async () => {
+                    const player = playerRef.current;
+                    if (!player) return;
+                    const currentTime = await player.getCurrentTime();
+                    onSendPlaybackState({ eventType: 'sync', isPlaying: true, currentTime, videoId });
+                })();
             }, SYNC_INTERVAL_MS);
         }
         return clearIntervals;
@@ -129,57 +135,62 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
 
     // FOLLOWER: React to External State
     useEffect(() => {
-        const player = playerRef.current;
-        if (isLeader || !isPlayerReady || !player || !externalPlaybackState || currentSong?.youtubeVideoId !== externalPlaybackState.videoId) {
-            return;
-        }
-        
-        const remoteState = externalPlaybackState;
-        const playerState = player.getPlayerState();
+        // Create an async function inside the effect to handle logic
+        const syncFollowerPlayer = async () => {
+            const player = playerRef.current;
+            if (isLeader || !isPlayerReady || !player || !externalPlaybackState || currentSong?.youtubeVideoId !== externalPlaybackState.videoId) {
+                return;
+            }
 
-        switch (remoteState.eventType) {
-            case 'play':
-                if (playerState !== YouTube.PlayerState.PLAYING) {
-                    player.seekTo(remoteState.currentTime, true);
-                    player.playVideo();
-                }
-                break;
-            case 'pause':
-                if (playerState !== YouTube.PlayerState.PAUSED) {
-                    player.pauseVideo();
-                }
-                break;
-            case 'seek':
-                player.seekTo(remoteState.currentTime, true);
-                if (remoteState.isPlaying && playerState !== YouTube.PlayerState.PLAYING) {
-                    player.playVideo();
-                } else if (!remoteState.isPlaying && playerState === YouTube.PlayerState.PLAYING) {
-                    player.pauseVideo();
-                }
-                break;
-            case 'sync':
-                if (remoteState.isPlaying && playerState === YouTube.PlayerState.PLAYING) {
-                    const localTime = player.getCurrentTime();
-                    if (Math.abs(localTime - remoteState.currentTime) > SYNC_THRESHOLD_S) {
+            const remoteState = externalPlaybackState;
+            const playerState = await player.getPlayerState();
+
+            switch (remoteState.eventType) {
+                case 'play':
+                    if (playerState !== YouTube.PlayerState.PLAYING) {
                         player.seekTo(remoteState.currentTime, true);
+                        player.playVideo();
                     }
-                } else if (remoteState.isPlaying && playerState !== YouTube.PlayerState.PLAYING) {
+                    break;
+                case 'pause':
+                    if (playerState !== YouTube.PlayerState.PAUSED) {
+                        player.pauseVideo();
+                    }
+                    break;
+                case 'seek':
                     player.seekTo(remoteState.currentTime, true);
-                    player.playVideo();
-                }
-                break;
-        }
+                    const isPlaying = await player.getPlayerState() === YouTube.PlayerState.PLAYING;
+                    if (remoteState.isPlaying && !isPlaying) {
+                        player.playVideo();
+                    } else if (!remoteState.isPlaying && isPlaying) {
+                        player.pauseVideo();
+                    }
+                    break;
+                case 'sync':
+                    if (remoteState.isPlaying && playerState === YouTube.PlayerState.PLAYING) {
+                        const localTime = await player.getCurrentTime();
+                        if (Math.abs(localTime - remoteState.currentTime) > SYNC_THRESHOLD_S) {
+                            player.seekTo(remoteState.currentTime, true);
+                        }
+                    } else if (remoteState.isPlaying && playerState !== YouTube.PlayerState.PLAYING) {
+                        player.seekTo(remoteState.currentTime, true);
+                        player.playVideo();
+                    }
+                    break;
+            }
+        };
+
+        syncFollowerPlayer();
     }, [externalPlaybackState, isLeader, isPlayerReady, currentSong]);
-    
-    // This effect handles loading a new song into the player when `currentSong` changes for both Leader and Follower
+
+    // This effect handles loading a new song into the player
     useEffect(() => {
         if (isPlayerReady && playerRef.current && currentSong?.youtubeVideoId) {
-            console.log(`Loading new video for ${isLeader ? 'Leader' : 'Follower'}: ${currentSong.title}`);
             playerRef.current.loadVideoById(currentSong.youtubeVideoId);
         } else if (!currentSong && playerRef.current && typeof playerRef.current.stopVideo === 'function') {
             playerRef.current.stopVideo();
         }
-    }, [currentSong, isPlayerReady, isLeader]);
+    }, [currentSong, isPlayerReady]);
 
     const playerOpts: YouTubeProps['opts'] = {
         height: '100%', width: '100%',
