@@ -202,6 +202,25 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
         },
     };
 
+    useEffect(() => {
+        if (currentSong?.youtubeVideoId) {
+            if (isPlayerReady && playerRef.current) {
+                console.log(`Loading new video for ${isLeader ? 'Leader' : 'Follower'}: ${currentSong.title}`);
+                playerRef.current.loadVideoById(currentSong.youtubeVideoId);
+            }
+            // If the player isn't ready, the onReady event for the new player instance will handle it
+        } else {
+            // Song queue is empty
+            if (playerRef.current && typeof playerRef.current.stopVideo === 'function') {
+                playerRef.current.stopVideo();
+            }
+            // Reset player-specific state when the queue becomes empty
+            setIsPlayerReady(false);
+            setLeaderDuration(0);
+            setLeaderCurrentTime(0);
+        }
+    }, [currentSong, isPlayerReady, isLeader]);
+
     return (
         <div className="p-1 rounded bg-muted/30 h-full flex flex-col items-center justify-center text-center">
             {currentSong && currentSong.youtubeVideoId ? (
