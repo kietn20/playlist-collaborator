@@ -23,7 +23,7 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
 }) => {
     const playerRef = useRef<YouTubePlayer | null>(null);
     const [isPlayerReady, setIsPlayerReady] = useState(false);
-
+    
     const [leaderCurrentTime, setLeaderCurrentTime] = useState(0);
     const [leaderDuration, setLeaderDuration] = useState(0);
     const [isLeaderPlaying, setIsLeaderPlaying] = useState(false);
@@ -47,10 +47,10 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
         const player = playerRef.current;
         const playerState = player.getPlayerState();
         const isPlayingNow = playerState === YouTube.PlayerState.PLAYING;
-
+        
         setIsLeaderPlaying(isPlayingNow);
         setLeaderDuration(player.getDuration());
-
+        
         if (playerState === YouTube.PlayerState.ENDED) {
             clearIntervals();
             onSongEnded(currentSong?.id || null);
@@ -60,7 +60,7 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
         let eventType: PlaybackEventType | null = null;
         if (playerState === YouTube.PlayerState.PLAYING) eventType = 'play';
         if (playerState === YouTube.PlayerState.PAUSED) eventType = 'pause';
-
+        
         if (eventType && currentSong?.youtubeVideoId) {
             onSendPlaybackState({
                 eventType: eventType,
@@ -113,7 +113,7 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
         clearIntervals();
         if (isLeader && isPlayerReady && playerRef.current && isLeaderPlaying && currentSong?.youtubeVideoId) {
             const videoId = currentSong.youtubeVideoId;
-
+            
             timeUpdateIntervalRef.current = window.setInterval(() => {
                 setLeaderCurrentTime(playerRef.current?.getCurrentTime() || 0);
             }, 500);
@@ -133,7 +133,7 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
         if (isLeader || !isPlayerReady || !player || !externalPlaybackState || currentSong?.youtubeVideoId !== externalPlaybackState.videoId) {
             return;
         }
-
+        
         const remoteState = externalPlaybackState;
         const playerState = player.getPlayerState();
 
@@ -170,7 +170,7 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
                 break;
         }
     }, [externalPlaybackState, isLeader, isPlayerReady, currentSong]);
-
+    
     // This effect handles loading a new song into the player when `currentSong` changes for both Leader and Follower
     useEffect(() => {
         if (isPlayerReady && playerRef.current && currentSong?.youtubeVideoId) {
