@@ -1,4 +1,4 @@
-// File: frontend/src/components/features/room/QueueSidebar.tsx
+// File: src/components/features/room/QueueSidebar.tsx
 
 import React from 'react';
 import AddSongForm from './AddSongForm';
@@ -18,9 +18,8 @@ const QueueSidebar: React.FC<QueueSidebarProps> = ({ username, roomId, playlistS
           <div className="flex flex-col h-full gap-4">
                <AddSongForm
                     roomId={roomId}
-                    // The onAddSong from the hook is now passed down directly
                     onAddSongFromForm={async (videoId, title, artist) => {
-                         onAddSong(videoId, title, artist); // Call the prop passed from RoomView/App
+                         onAddSong(videoId, title, artist);
                     }}
                />
                <div className="flex-grow min-h-0">
