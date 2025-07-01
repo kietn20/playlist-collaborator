@@ -5,7 +5,7 @@ import { Toaster, toast } from 'react-hot-toast';
 import EntryModal from './components/features/entry/EntryModal';
 import RoomView from './components/layouts/RoomView';
 import './index.css';
-import { RoomDto, CreateRoomDto, PlaylistSongDto, PlaybackStateDto, NextSongWsMessage } from './types/dtos';
+import { RoomDto, CreateRoomDto, PlaylistSongDto, PlaybackStateDto } from './types/dtos';
 import { usePlaylistWebSocket } from './hooks/usePlaylistWebSocket';
 
 const API_BASE_URL = '/api';
@@ -30,33 +30,33 @@ function App() {
 
     const handleWebSocketSongRemoved = useCallback((removedSongId: string) => {
         setPlaylistSongs(prevSongs => prevSongs.filter(song => song.id !== removedSongId));
+        setPlaybackState(null);
     }, []);
 
     const handleWebSocketPlaybackUpdate = useCallback((newState: PlaybackStateDto) => {
         setPlaybackState(newState);
     }, []);
 
-    const handleWebSocketNextSong = useCallback((message: NextSongWsMessage) => {
-        console.log(`[App] Received next song event, triggered by ${message.triggeredBy}.`);
-        setPlaybackState(null);
-        setPlaylistSongs(prev => prev.slice(1));
-    }, []);
-
-    const { isConnected: isWsConnected, sendAddSongMessage, sendRemoveSongMessage, sendPlaybackState, sendNextSongEvent } = usePlaylistWebSocket({
+    const {
+        isConnected: isWsConnected,
+        sendAddSongMessage,
+        sendRemoveSongMessage,
+        sendPlaybackState,
+        sendNextSongRequest 
+    } = usePlaylistWebSocket({
         roomId: currentRoomId,
         username: username,
         isLeader: isLeader,
         onPlaylistUpdate: handleWebSocketSongAdded,
         onSongRemoved: handleWebSocketSongRemoved,
         onPlaybackStateUpdate: handleWebSocketPlaybackUpdate,
-        onNextSong: handleWebSocketNextSong,
     });
 
     const handleJoinOrCreate = useCallback(async (user: string, roomIdToJoin?: string) => {
         setIsLoading(true);
         setUsername(user);
         setPlaylistSongs([]);
-        setPlaybackState(null); // Reset state on join/create
+        setPlaybackState(null);
 
         try {
             let finalRoomData: RoomDto;
@@ -95,23 +95,20 @@ function App() {
         }
     }, []);
 
-    const handleSongEnded = useCallback((endedSongId: string | null) => {
-        if (!isLeader) return; // Only the leader's "song ended" event matters
+    const handleSongEnded = useCallback((_endedSongId: string | null) => {
+        if (!isLeader) return;
 
-        console.log(`[App] LEADER's song ended, ID: ${endedSongId}`);
-        const nextSong = playlistSongs.length > 1 ? playlistSongs[1] : null;
-        toast.success(nextSong ? `Now playing: ${nextSong.title}` : 'Playlist finished!');
-
-        // Leader tells everyone to advance to the next song by sending the event
-        sendNextSongEvent(nextSong?.id || null);
-    }, [isLeader, playlistSongs, sendNextSongEvent]);
+        console.log(`[App] Leader's song ended. Requesting next song from backend.`);
+        sendNextSongRequest(username);
+    }, [isLeader, sendNextSongRequest, username]);
 
     const handleSkipSong = useCallback(() => {
         if (isLeader && playlistSongs.length > 0) {
-            const nextSong = playlistSongs.length > 1 ? playlistSongs[1] : null;
-            sendNextSongEvent(nextSong?.id || null);
+            sendNextSongRequest(username);
+        } else if (!isLeader) {
+            toast.error("Only the DJ can skip songs.");
         }
-    }, [isLeader, playlistSongs, sendNextSongEvent]);
+    }, [isLeader, playlistSongs.length, sendNextSongRequest, username]);
 
     const handleLeaveRoom = useCallback(() => {
         setCurrentRoomId(null);
@@ -136,26 +133,21 @@ function App() {
                     roomName={currentRoomName}
                     username={username}
                     isLeader={isLeader}
-                    onSendPlaybackState={sendPlaybackState}
+                    isWsConnected={isWsConnected}
+                    playlistSongs={playlistSongs}
                     externalPlaybackState={playbackState}
                     onLeaveRoom={handleLeaveRoom}
-                    playlistSongs={playlistSongs}
-                    // This is the SINGLE, CLEAN prop for adding songs.
+                    onSkipSong={handleSkipSong}
+                    onSongEnded={handleSongEnded}
+                    onRemoveSong={sendRemoveSongMessage}
                     onAddSong={(youtubeVideoId, title, artist) => {
                         sendAddSongMessage(youtubeVideoId, title, artist, username);
                     }}
-                    onRemoveSong={sendRemoveSongMessage}
-                    isWsConnected={isWsConnected}
-                    onSongEnded={handleSongEnded}
-                    onSkipSong={handleSkipSong}
+                    onSendPlaybackState={sendPlaybackState}
                 />
             )}
 
-            <Toaster
-                position="top-right"
-                reverseOrder={false}
-                toastOptions={{ style: { background: '#333', color: '#fff' } }}
-            />
+            <Toaster position="top-right" reverseOrder={false} toastOptions={{ style: { background: '#333', color: '#fff' } }} />
         </div>
     );
 }
