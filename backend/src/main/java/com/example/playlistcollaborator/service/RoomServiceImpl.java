@@ -1,6 +1,4 @@
-// File: src/main/java/com/example/playlistcollaborator/service/RoomServiceImpl.java
 // Purpose: Implementation of the RoomService interface.
-// Location: src/main/java/com/example/playlistcollaborator/service/
 
 package com.example.playlistcollaborator.service;
 
@@ -8,16 +6,18 @@ import com.example.playlistcollaborator.dto.AddSongRequest;
 import com.example.playlistcollaborator.dto.CreateRoomDto;
 import com.example.playlistcollaborator.dto.PlaylistSongDto;
 import com.example.playlistcollaborator.dto.RoomDto;
+import com.example.playlistcollaborator.dto.SongRemovedResponse;
 import com.example.playlistcollaborator.entity.PlaylistSong;
 import com.example.playlistcollaborator.entity.Room;
 import com.example.playlistcollaborator.exception.PlaylistSongNotFoundException;
 import com.example.playlistcollaborator.exception.RoomNotFoundException;
 import com.example.playlistcollaborator.repository.PlaylistSongRepository;
 import com.example.playlistcollaborator.repository.RoomRepository;
-import lombok.RequiredArgsConstructor; // Lombok annotation for constructor injection
+import lombok.RequiredArgsConstructor; 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional; // Important for data consistency
+import org.springframework.transaction.annotation.Transactional; 
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.util.Collections;
 import java.util.List;
@@ -25,40 +25,39 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-@Service // Marks this as a Spring service component
-@RequiredArgsConstructor // Creates a constructor with required (final) fields - for dependency injection
+@Service
+@RequiredArgsConstructor 
 @Slf4j
 public class RoomServiceImpl implements RoomService {
 
-    private final RoomRepository roomRepository; // Inject the repository
-    private final PlaylistSongRepository playlistSongRepository; // Inject PlaylistSongRepository
+    private final RoomRepository roomRepository;
+    private final PlaylistSongRepository playlistSongRepository; 
     private final YouTubeApiService youtubeApiService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Override
-    @Transactional // Ensures the operation is atomic (all or nothing)
+    @Transactional 
     public RoomDto createRoom(CreateRoomDto createRoomDto) {
         log.info("RoomService: createRoom - START");
         Room newRoom = new Room();
         newRoom.setName(createRoomDto.getName());
-        newRoom.setPublicId(generateUniquePublicId()); // Use a helper method
+        newRoom.setPublicId(generateUniquePublicId()); 
 
-        // Note: PlaylistSongs list is initialized lazily by JPA or explicitly if needed.
-        // newRoom.setPlaylistSongs(new ArrayList<>()); // Not strictly needed if cascade is set right
 
         Room savedRoom = roomRepository.save(newRoom);
         log.info("RoomService: createRoom - END, savedRoom.publicId: " + savedRoom.getPublicId());
-        return convertToRoomDto(savedRoom); // Convert entity to DTO
+        return convertToRoomDto(savedRoom);
     }
 
     @Override
-    @Transactional(readOnly = true) // Optimization for read operations
+    @Transactional(readOnly = true)
     public Optional<RoomDto> findRoomByPublicId(String publicId) {
         return roomRepository.findByPublicId(publicId)
-                .map(this::convertToRoomDto); // Convert the found entity to DTO
+                .map(this::convertToRoomDto); 
     }
 
     @Override
-    @Transactional // Important: Transaction ensures room lookup and song saving are atomic
+    @Transactional
     public PlaylistSongDto addSongToRoom(String publicId, AddSongRequest addSongRequest) {
         log.info("Attempting to add song: {} by {} (user: {}) to room: {}",
                 addSongRequest.getTitle(), addSongRequest.getArtist(), addSongRequest.getUsername(), publicId);
@@ -117,57 +116,54 @@ public class RoomServiceImpl implements RoomService {
                     return new PlaylistSongNotFoundException(songId, publicId);
                 });
 
-        // Explicitly remove from the Room's collection
         room.getPlaylistSongs().remove(songToRemove);
-        // And set the song's room to null to break the relationship (good practice)
-        // songToRemove.setRoom(null); // Not strictly necessary if cascade/orphanRemoval handles DB, but good for in-memory state.
-
-        // Because Room.playlistSongs is configured with orphanRemoval=true (presumably),
-        // when the transaction commits, Hibernate will see that songToRemove is no longer
-        // in room.getPlaylistSongs() and will delete it.
-        // If you *also* call playlistSongRepository.delete(songToRemove), it might be redundant
-        // or could even cause issues if Hibernate tries to operate on a detached/deleted entity.
-        // Let orphanRemoval do its job by managing the collection.
-
-        // So, remove this direct deletion if relying on orphanRemoval
-        // playlistSongRepository.delete(songToRemove);
-
-        // Just ensure the Room entity is saved if changes were made to its collection
-        // Though often, changes to a managed collection are automatically detected and persisted
-        // by Hibernate during transaction commit. Saving the room explicitly can ensure it.
         roomRepository.save(room); // This will persist the change to the room's song collection
 
         log.info("Song ID: {} successfully removed from room's collection: {}", songId, publicId);
     }
 
-    // --- Helper Methods ---
+    @Override
+    @Transactional
+    public void advanceToNextSong(String publicId, String username) {
+        log.info("Received request to advance to next song in room {} from user {}", publicId, username);
+        Room room = roomRepository.findByPublicId(publicId).orElseThrow(() -> new RoomNotFoundException(publicId));
 
+        List<PlaylistSong> currentPlaylist = room.getPlaylistSongs();
+        if (currentPlaylist.isEmpty()) {
+            log.warn("Cannot advance song in room {}: playlist is empty.", publicId);
+            return; 
+        }
+
+        PlaylistSong finishedSong = currentPlaylist.get(0);
+        UUID finishedSongId = finishedSong.getId();
+
+        room.getPlaylistSongs().remove(finishedSong);
+        
+        PlaylistSong nextSong = currentPlaylist.isEmpty() ? null : currentPlaylist.get(0);
+
+        roomRepository.save(room);
+
+        // --- BROADCAST UPDATES TO ALL CLIENTS ---
+
+        // 1. Tell everyone the old song was removed from the queue.
+        // All clients (leader and followers) will listen to this and update their UI.
+        String songRemovedTopic = "/topic/room/" + publicId + "/songRemoved";
+        messagingTemplate.convertAndSend(songRemovedTopic, new SongRemovedResponse(finishedSongId));
+        log.info("Broadcasted songRemoved for songId {} to {}", finishedSongId, songRemovedTopic);
+    }
+
+    // --- Helper Methods ---
     private String generateUniquePublicId() {
-        // Simple generation - okay for MVP, might need enhancement for high load
-        // Consider adding a retry loop with existsByPublicId check for robustness
         return UUID.randomUUID().toString().substring(0, 8);
-        // Example with basic retry (can be improved further):
-        // int maxAttempts = 5;
-        // for (int i = 0; i < maxAttempts; i++) {
-        //     String candidateId = UUID.randomUUID().toString().substring(0, 8);
-        //     if (!roomRepository.existsByPublicId(candidateId)) {
-        //         return candidateId;
-        //     }
-        // }
-        // throw new RuntimeException("Failed to generate a unique public ID after " + maxAttempts + " attempts");
     }
 
 
     // Mapper method to convert Room Entity to RoomDto
     private RoomDto convertToRoomDto(Room room) {
         List<PlaylistSongDto> songDtos;
-        // Handle the case where playlistSongs might be null if not fetched/initialized
-        // Depending on fetch type and transaction boundaries, explicit loading might be needed
-        // E.g., using Hibernate.initialize(room.getPlaylistSongs());
-        // or ensuring the fetch happens within the transaction boundary.
         if (room.getPlaylistSongs() != null) {
             songDtos = room.getPlaylistSongs().stream()
-                    .map(this::convertToPlaylistSongDto) // Convert each song entity
+                    .map(this::convertToPlaylistSongDto)
                     .collect(Collectors.toList());
         } else {
             songDtos = Collections.emptyList();
@@ -183,7 +179,7 @@ public class RoomServiceImpl implements RoomService {
 
     // Mapper method to convert PlaylistSong Entity to PlaylistSongDto
     private PlaylistSongDto convertToPlaylistSongDto(PlaylistSong song) {
-        log.debug("Converting song to DTO. Video ID from entity: {}", song.getYoutubeVideoId()); // Add this debug log
+        log.debug("Converting song to DTO. Video ID from entity: {}", song.getYoutubeVideoId());
         return new PlaylistSongDto(
                 song.getId(),
                 song.getTitle(),
