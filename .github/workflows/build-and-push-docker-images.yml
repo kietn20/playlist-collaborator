@@ -15,7 +15,32 @@ on:
 jobs:
   # --- Backend Job ---
   build-and-test-backend:
-    runs-on: ubuntu-latest # Use the latest Ubuntu runner provided by GitHub
+    runs-on: ubuntu-latest
+
+    # This 'services' block runs a Docker container alongside the job runner.
+    # It will be available on 'localhost' to the steps in this job.
+    services:
+      # We'll name the service 'postgres'
+      postgres:
+        # Use a postgres Docker image. '15' matches your docker-compose.
+        image: postgres:15
+        # Environment variables to initialize the PostgreSQL container
+        env:
+          POSTGRES_DB: playlist_test_db  # Use a separate test database name
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpassword
+        # Ports are not strictly needed to be mapped to the host runner,
+        # but can be useful for debugging. The job itself will connect via localhost.
+        # GitHub Actions ensures port 5432 on the service container is available to
+        # the main job container on localhost:5432.
+        ports:
+          - 5432:5432
+        # Health check to ensure PostgreSQL is ready to accept connections before tests run
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       # Step 1: Check out the repository's code so the job can access it
@@ -39,12 +64,18 @@ jobs:
             ${{ runner.os }}-maven-
 
       # Step 4: Run backend tests with Maven
-      # Note: This will need a database. For unit tests, H2 in-memory DB is common.
-      # For integration tests, this step could spin up a DB service.
-      # For now, we will focus on unit tests which don't need a DB.
-      - name: Test backend with Maven
+      # This step is where we tell Spring Boot to use the test database
+      - name: Test backend with Maven using Test DB
         run: ./mvnw -B test
         working-directory: ./backend
+        env:
+          # These environment variables will be available to the Spring Boot test context.
+          # They override the values in application.properties.
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/playlist_test_db
+          SPRING_DATASOURCE_USERNAME: testuser
+          SPRING_DATASOURCE_PASSWORD: testpassword
+          # We might also want to set ddl-auto to create-drop for clean tests
+          SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
 
       # Step 5: Log in to Docker Hub
       # Use the secrets we configured in the GitHub repository settings
