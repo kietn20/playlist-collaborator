@@ -76,6 +76,7 @@ jobs:
           SPRING_DATASOURCE_PASSWORD: testpassword
           # We might also want to set ddl-auto to create-drop for clean tests
           SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
 
       # Step 5: Log in to Docker Hub
       # Use the secrets we configured in the GitHub repository settings
