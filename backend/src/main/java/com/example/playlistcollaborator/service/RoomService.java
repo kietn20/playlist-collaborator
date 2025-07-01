@@ -8,6 +8,7 @@ import com.example.playlistcollaborator.dto.AddSongRequest;
 import com.example.playlistcollaborator.dto.CreateRoomDto;
 import com.example.playlistcollaborator.dto.PlaylistSongDto;
 import com.example.playlistcollaborator.dto.RoomDto;
+import com.example.playlistcollaborator.exception.PlaylistSongNotFoundException;
 import com.example.playlistcollaborator.exception.RoomNotFoundException;
 
 import java.util.Optional;
@@ -45,5 +46,12 @@ public interface RoomService {
      * @throws PlaylistSongNotFoundException if the song does not exist in the room. // We'll create this
      */
     void removeSongFromRoom(String publicId, UUID songId);
+
+    /**
+     * Advances to the next song in the room's playlist.
+     * @param publicId The public identifier of the room.
+     * @param username The username of the user requesting the next song.
+     */
+    void advanceToNextSong(String publicId, String username);
 
 }
