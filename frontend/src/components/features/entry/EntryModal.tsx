@@ -1,7 +1,3 @@
-// File: src/components/features/entry/EntryModal.tsx
-// Purpose: Modal for user to enter username and join/create a room.
-// Location: src/components/features/entry/
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import {
@@ -14,16 +10,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from 'lucide-react'; // For loading spinner
+import { Loader2 } from 'lucide-react'; 
 import toast from 'react-hot-toast';
 
 interface EntryModalProps {
-    // We will make this modal control its own open state
-    // so App.tsx doesn't need to manage it directly for rendering.
-    // It will be always rendered but controlled internally.
-    isOpen: boolean; // Controlled from App.tsx
-    isLoading: boolean; // Passed from App.tsx to show loading state
-    onJoinOrCreate: (username: string, roomId?: string) => Promise<void>; // Made async
+    isOpen: boolean; 
+    isLoading: boolean; 
+    onJoinOrCreate: (username: string, roomId?: string) => Promise<void>;
 }
 
 const EntryModal: React.FC<EntryModalProps> = ({ isOpen, isLoading, onJoinOrCreate }) => {
@@ -38,14 +31,8 @@ const EntryModal: React.FC<EntryModalProps> = ({ isOpen, isLoading, onJoinOrCrea
         await onJoinOrCreate(usernameInput.trim(), roomIdInput.trim() || undefined); // Pass undefined if roomId is empty
     };
 
-    // Since shadcn's Dialog doesn't prevent interaction with underlying elements
-    // by default when controlled externally via `open` prop without a `DialogTrigger`,
-    // we should also add an overlay if isOpen is true to block background interactions.
-    // Alternatively, if EntryModal were only rendered when needed, Dialog's own modality
-    // would suffice. Let's keep it controlled by App.tsx for now via isOpen.
-
     if (!isOpen) {
-        return null; // Don't render anything if not open
+        return null; 
     }
 
     return (
