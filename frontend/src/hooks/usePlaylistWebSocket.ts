@@ -1,9 +1,9 @@
-// File: frontend/src/hooks/usePlaylistWebSocket.ts (Corrected)
+// File: frontend/src/hooks/usePlaylistWebSocket.ts
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import { PlaylistSongDto, AddSongWsRequest, SongAddedWsMessage, SongRemovedWsMessage, NextSongWsMessage, PlaybackStateDto } from '@/types/dtos';
+import { PlaylistSongDto, AddSongWsRequest, SongAddedWsMessage, SongRemovedWsMessage, PlaybackStateDto, NextSongRequestDto } from '@/types/dtos';
 import toast from 'react-hot-toast';
 
 const WS_ENDPOINT = '/ws-playlist';
@@ -15,7 +15,6 @@ interface UsePlaylistWebSocketProps {
     onPlaylistUpdate: (newSong: PlaylistSongDto) => void;
     onSongRemoved: (removedSongId: string) => void;
     onPlaybackStateUpdate: (newState: PlaybackStateDto) => void;
-    onNextSong: (message: NextSongWsMessage) => void;
 }
 
 interface UsePlaylistWebSocketReturn {
@@ -23,7 +22,7 @@ interface UsePlaylistWebSocketReturn {
     sendAddSongMessage: (youtubeVideoId: string, title: string | undefined, artist: string | undefined, username: string) => void;
     sendRemoveSongMessage: (songId: string) => void;
     sendPlaybackState: (state: Omit<PlaybackStateDto, 'triggeredBy'>) => void;
-    sendNextSongEvent: (nextSongId: string | null) => void;
+    sendNextSongRequest: (username: string) => void;
 }
 
 export const usePlaylistWebSocket = ({
@@ -33,7 +32,6 @@ export const usePlaylistWebSocket = ({
     onPlaylistUpdate,
     onSongRemoved,
     onPlaybackStateUpdate,
-    onNextSong,
 }: UsePlaylistWebSocketProps): UsePlaylistWebSocketReturn => {
     const [stompClient, setStompClient] = useState<Client | null>(null);
     const [isConnected, setIsConnected] = useState<boolean>(false);
@@ -57,13 +55,14 @@ export const usePlaylistWebSocket = ({
                 heartbeatOutgoing: 10000,
             });
 
-            client.onConnect = (frame) => {
-                console.log(`[WS] Connected to Room ${roomId}:`, frame);
+            client.onConnect = () => {
+                console.log(`[WS] Connected to Room ${roomId}`);
                 setIsConnected(true);
                 toast.success(`Connected to room: ${roomId}`);
 
                 const newSubscriptions: StompSubscription[] = [];
 
+                // Subscribe to new songs being added
                 newSubscriptions.push(client.subscribe(`/topic/room/${roomId}/songs`, (message: IMessage) => {
                     try {
                         const newSong = JSON.parse(message.body) as SongAddedWsMessage;
@@ -73,6 +72,7 @@ export const usePlaylistWebSocket = ({
                     } catch (e) { console.error("[WS] Error parsing songAdded message:", e); }
                 }));
 
+                // Subscribe to songs being removed (this now handles played songs too)
                 newSubscriptions.push(client.subscribe(`/topic/room/${roomId}/songRemoved`, (message: IMessage) => {
                     try {
                         const removedInfo = JSON.parse(message.body) as SongRemovedWsMessage;
@@ -82,20 +82,13 @@ export const usePlaylistWebSocket = ({
                     } catch (e) { console.error("[WS] Error parsing songRemoved message:", e); }
                 }));
 
+                // Subscribe to playback state sync
                 newSubscriptions.push(client.subscribe(`/topic/room/${roomId}/playbackState`, (message: IMessage) => {
                     try {
                         const newState = JSON.parse(message.body) as PlaybackStateDto;
-                        if (newState.triggeredBy === username) return; // Ignore echo
-                        console.log('[WS] Received playback state update:', newState);
+                        if (newState.triggeredBy === username) return;
                         onPlaybackStateUpdate(newState);
                     } catch (e) { console.error("[WS] Error parsing playbackState message:", e); }
-                }));
-
-                newSubscriptions.push(client.subscribe(`/topic/room/${roomId}/nextSong`, (message: IMessage) => {
-                    try {
-                        const nextSongMessage = JSON.parse(message.body) as NextSongWsMessage;
-                        onNextSong(nextSongMessage);
-                    } catch (e) { console.error("[WS] Error parsing nextSong message:", e); }
                 }));
 
                 subscriptionsRef.current = newSubscriptions;
@@ -119,22 +112,20 @@ export const usePlaylistWebSocket = ({
                 setIsConnected(false);
                 // toast.info("Disconnected from playlist room."); // Might be too noisy on intentional disconnects
             };
-
+            
             client.activate();
             setStompClient(client);
         }
 
-        return () => { // Cleanup Logic
+        return () => {
             if (stompClient?.active) {
-                console.log('[WS] Disconnecting...');
                 subscriptionsRef.current.forEach(sub => sub.unsubscribe());
-                subscriptionsRef.current = [];
                 stompClient.deactivate();
                 setStompClient(null);
                 setIsConnected(false);
             }
         };
-    }, [roomId, username, onNextSong, onPlaybackStateUpdate, onPlaylistUpdate, onSongRemoved]);
+    }, [roomId, username, onPlaybackStateUpdate, onPlaylistUpdate, onSongRemoved]);
 
     const sendAddSongMessage = useCallback((youtubeVideoId: string, title: string | undefined, artist: string | undefined, senderUsername: string) => {
         if (stompClient?.active && roomId) {
@@ -145,7 +136,8 @@ export const usePlaylistWebSocket = ({
 
     const sendRemoveSongMessage = useCallback((songId: string) => {
         if (stompClient?.active && roomId) {
-            stompClient.publish({ destination: `/app/room/${roomId}/removeSong`, body: JSON.stringify({ songId }) });
+            const request = { songId: songId };
+            stompClient.publish({ destination: `/app/room/${roomId}/removeSong`, body: JSON.stringify(request) });
         }
     }, [stompClient, roomId]);
 
@@ -159,13 +151,13 @@ export const usePlaylistWebSocket = ({
         }
     }, [stompClient, roomId, isLeader, username]);
 
-    const sendNextSongEvent = useCallback((nextSongId: string | null) => {
-        if (stompClient?.active && roomId && username) {
-            const message: NextSongWsMessage = { nextSongId, triggeredBy: username };
-            stompClient.publish({ destination: `/app/room/${roomId}/nextSong`, body: JSON.stringify(message) });
-            console.log('[WS] Sent nextSong event');
+    const sendNextSongRequest = useCallback((senderUsername: string) => {
+        if (stompClient?.active && roomId) {
+            const message: NextSongRequestDto = { username: senderUsername };
+            stompClient.publish({ destination: `/app/room/${roomId}/requestNextSong`, body: JSON.stringify(message) });
+            console.log('[WS] Sent requestNextSong to backend');
         }
-    }, [stompClient, roomId, username]);
+    }, [stompClient, roomId]);
 
-    return { isConnected, sendAddSongMessage, sendRemoveSongMessage, sendPlaybackState, sendNextSongEvent };
+    return { isConnected, sendAddSongMessage, sendRemoveSongMessage, sendPlaybackState, sendNextSongRequest };
 };
