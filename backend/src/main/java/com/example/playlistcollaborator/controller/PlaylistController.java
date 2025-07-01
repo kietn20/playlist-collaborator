@@ -1,6 +1,5 @@
 // File: src/main/java/com/example/playlistcollaborator/controller/PlaylistController.java
 // Purpose: Controller for handling WebSocket messages related to playlists.
-// Location: src/main/java/com/example/playlistcollaborator/controller/
 
 package com.example.playlistcollaborator.controller;
 
@@ -19,13 +18,14 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.stereotype.Controller;
+import com.example.playlistcollaborator.dto.NextSongRequestDto;
 
-@Controller // Use @Controller, not @RestController for WebSocket controllers
+@Controller
 @RequiredArgsConstructor
-@Slf4j // Lombok annotation for logging
+@Slf4j
 public class PlaylistController {
 
-    private final RoomService roomService; // Inject service
+    private final RoomService roomService;
 
     /**
      * Handles requests to add a song to a specific room's playlist.
@@ -39,24 +39,21 @@ public class PlaylistController {
      * @throws Exception if song cannot be added (e.g., room not found - handled by
      *                   service/exception handler).
      */
-    @MessageMapping("/room/{publicId}/addSong") // Listens for messages sent to this destination
-    @SendTo("/topic/room/{publicId}/songs") // Broadcasts the return value to this topic destination
+    @MessageMapping("/room/{publicId}/addSong") 
+    @SendTo("/topic/room/{publicId}/songs") 
     public PlaylistSongDto addSong(
-            @DestinationVariable String publicId, // Extract {publicId} from the destination
-            @Payload AddSongRequest request) throws Exception { // Extract message body
+            @DestinationVariable String publicId, 
+            @Payload AddSongRequest request) throws Exception { 
 
-        // LOG THE INCOMING REQUEST DTO
-        log.info("PlaylistController received AddSongRequest: {}", request.toString()); // Use .toString() from Lombok
-                                                                                        // @Data
+        log.info("PlaylistController received AddSongRequest: {}", request.toString()); 
 
         log.info("Received request to add song {} - {} (VideoID: {}) to room {} by user {}",
                 request.getTitle(), request.getArtist(), request.getYoutubeVideoId(), publicId, request.getUsername());
 
-        // Delegate the actual song addition logic to the service layer
         PlaylistSongDto addedSong = roomService.addSongToRoom(publicId, request);
 
         log.info("Broadcasting added song {} to /topic/room/{}/songs", addedSong.getId(), publicId);
-        return addedSong; // This object gets automatically serialized (e.g., to JSON) and sent
+        return addedSong;
     }
 
     @MessageMapping("/room/{publicId}/removeSong")
@@ -93,5 +90,12 @@ public class PlaylistController {
     public NextSongMessageDto nextSong(@DestinationVariable String publicId, @Payload NextSongMessageDto message) {
         log.info("Relaying nextSong event for room {}", publicId);
         return message;
+    }
+
+    @MessageMapping("/room/{publicId}/requestNextSong")
+    public void requestNextSong(
+            @DestinationVariable String publicId,
+            @Payload NextSongRequestDto request) {
+        roomService.advanceToNextSong(publicId, request.getUsername());
     }
 }
