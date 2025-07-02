@@ -1,6 +1,4 @@
-# File: .github/workflows/build-and-push-docker-images.yml
 # Purpose: CI/CD workflow to build, test, and push Docker images for frontend and backend.
-# Location: Root of the repository in .github/workflows/
 
 name: Build, Test, and Push Docker Images
 
@@ -145,3 +143,43 @@ jobs:
           file: ./frontend/Dockerfile
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/playlist-frontend:latest
+  deploy:
+      runs-on: ubuntu-latest
+      needs: [build-and-test-backend, build-and-test-frontend]
+
+      steps:
+        # Step 1: Install the SSH Key from GitHub Secrets
+        - name: Install SSH Key
+          uses: shimataro/ssh-key-action@v2
+          with:
+            key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+            # The known_hosts value is required to prevent interactive prompts when connecting
+            # for the first time. The value here is a basic pattern matching any host,
+            # which is acceptable for this setup but can be made more secure.
+            known_hosts: 'just-a-placeholder-for-this-action'
+
+        # Step 2: SSH into the EC2 instance and run deployment commands
+        - name: Deploy to EC2
+          uses: appleboy/ssh-action@master
+          with:
+            host: ${{ secrets.EC2_HOST }}
+            username: ${{ secrets.EC2_USERNAME }}
+            key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+            script: |
+              # Navigate to the app directory
+              cd ~/playlist-app
+
+              # Ensure the local repository is up-to-date with the latest changes (e.g., new docker-compose.prod.yml)
+              git pull origin main
+
+              # Log in to Docker Hub using credentials passed as environment variables from secrets
+              echo ${{ secrets.DOCKERHUB_TOKEN }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+
+              # Pull the latest images from Docker Hub that were just pushed by the build jobs
+              docker compose -f docker-compose.prod.yml pull
+
+              # Stop and restart the services using the newly pulled images
+              docker compose -f docker-compose.prod.yml up -d
+
+              # Clean up any old, unused Docker images to save space
+              docker image prune -af
