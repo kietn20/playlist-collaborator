@@ -1,67 +1,38 @@
-/* File: frontend/src/index.css */
-/* Purpose: Import Tailwind layers, Google Fonts, and define global CSS vars */
-/* Location: frontend/src */
 
 /* Import Google Font */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-/* Tailwind directives */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Define CSS variables for colors (based on shadcn structure and your theme) */
 @layer base {
   :root {
-    /* Your Theme */
     --background: 240 10% 3.9%;
-    /* Approximation of #080804 in HSL */
     --foreground: 60 33% 90%;
-    /* Approximation of #f2f2e6 in HSL */
     --primary: 62 30% 72%;
-    /* Approximation of #cfcea0 in HSL */
     --primary-foreground: 240 10% 3.9%;
-    /* Text on primary - needs contrast */
     --secondary: 97 32% 33%;
-    /* Approximation of #527039 in HSL */
     --secondary-foreground: 60 33% 90%;
-    /* Text on secondary */
     --accent: 107 32% 57%;
-    /* Approximation of #81b56f in HSL */
     --accent-foreground: 240 10% 3.9%;
-    /* Text on accent */
-
-    /* Shadcn/ui Defaults (You can adjust these if needed) */
-    /* Using darker base derived from your background */
     --card: 240 10% 5%;
-    /* Slightly lighter than background for cards */
     --card-foreground: 60 33% 90%;
     --popover: 240 10% 3.9%;
     --popover-foreground: 60 33% 90%;
     --muted: 240 4% 16%;
-    /* Darker muted */
     --muted-foreground: 240 5% 65%;
     --destructive: 0 63% 31%;
     --destructive-foreground: 60 33% 90%;
     --border: 240 4% 16%;
-    /* Darker border */
     --input: 240 4% 16%;
-    /* Darker input */
     --ring: 62 30% 72%;
-    /* Ring matches primary for focus */
-
-    /* Shadcn/ui Radius */
     --radius: 0.5rem;
   }
 
-  /* Example for a potentially light theme if you add theme switching later */
-  /* .light { ... define light theme vars here ... } */
-
-  /* Apply base body styling */
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     font-family: 'Inter', sans-serif;
-    /* Ensure Inter is applied */
   }
 }

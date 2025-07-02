@@ -1,6 +1,4 @@
-// File: src/main/java/com/example/playlistcollaborator/dto/RoomDto.java
 // Purpose: Data Transfer Object for Room details, including its playlist.
-// Location: src/main/java/com/example/playlistcollaborator/dto/
 
 package com.example.playlistcollaborator.dto;
 

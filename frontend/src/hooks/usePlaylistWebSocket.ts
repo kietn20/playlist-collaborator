@@ -1,5 +1,3 @@
-// File: frontend/src/hooks/usePlaylistWebSocket.ts
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';

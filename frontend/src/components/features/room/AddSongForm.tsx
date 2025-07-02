@@ -1,5 +1,3 @@
-// File: src/components/features/room/AddSongForm.tsx
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,12 +12,6 @@ interface AddSongFormProps {
     onAddSongFromForm: (youtubeVideoId: string, title?: string, artist?: string) => Promise<void>;
 }
 
-// Dummy onAddSong for now - replace in QueueSidebar when connecting to WebSocket
-// const dummyOnAddSong = async (title: string, artist: string) => {
-//     console.log(`Dummy add song: ${title} by ${artist}`);
-//     await new Promise(resolve => setTimeout(resolve, 700)); // Simulate network
-//     // toast.success(`"${title}" added (locally)!`); // For local testing
-// };
 
 const AddSongForm: React.FC<AddSongFormProps> = ({ roomId, onAddSongFromForm }) => {
     const [youtubeInput, setYoutubeInput] = useState('');

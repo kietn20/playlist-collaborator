@@ -1,6 +1,4 @@
-// File: src/main/java/com/example/playlistcollaborator/config/WebSocketConfig.java
 // Purpose: Configures WebSocket messaging with STOMP protocol.
-// Location: src/main/java/com/example/playlistcollaborator/config/
 
 package com.example.playlistcollaborator.config;
 
@@ -19,12 +17,10 @@ import org.springframework.context.annotation.Bean;
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     // Define allowed origins - React dev server and potentially production URL
-    // later
     private final String[] ALLOWED_ORIGINS = {
-            "http://localhost:3000", // Default Vite/CRA React port
-            "http://localhost:5173", // Common Vite dev port
-            "http://127.0.0.1:5173" // Another common Vite dev port
-            // Add your production frontend URL here when deploying
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "http://127.0.0.1:5173"
     };
 
     /**
@@ -41,10 +37,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         registry.addEndpoint("/ws-playlist")
                 .setAllowedOrigins(ALLOWED_ORIGINS) // Allow connections from REact server
                 .withSockJS(); // Enable SockJS fallback options.
-        // Optional: .setAllowedOrigins("*") - Configure allowed origins if needed for
-        // CORS.
-        // By default, same-origin is allowed. For development, you might need "*" or
-        // specific origins.
     }
 
     /**
@@ -70,11 +62,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         registry.enableSimpleBroker("/topic", "/queue")
                 .setHeartbeatValue(new long[] { 10000, 10000 })
                 .setTaskScheduler(heartBeatTaskScheduler());
-
-        // Optional: If you need to send messages to specific users (e.g., using
-        // @SendToUser),
-        // you might need to configure a user destination prefix.
-        // registry.setUserDestinationPrefix("/user");
     }
 
     @Bean

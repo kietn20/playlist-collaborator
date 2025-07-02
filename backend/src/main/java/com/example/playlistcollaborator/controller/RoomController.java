@@ -1,6 +1,4 @@
-// File: src/main/java/com/example/playlistcollaborator/controller/RoomController.java
 // Purpose: REST Controller for Room-related operations.
-// Location: src/main/java/com/example/playlistcollaborator/controller/
 
 package com.example.playlistcollaborator.controller;
 
@@ -14,13 +12,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@RestController // Marks this class as a REST controller
-@RequestMapping("/api/rooms") // Base path for all endpoints in this controller
-@RequiredArgsConstructor // Injects dependencies via constructor
+@RestController 
+@RequestMapping("/api/rooms") 
+@RequiredArgsConstructor 
 @Slf4j
 public class RoomController {
 
-    private final RoomService roomService; // Inject the service
+    private final RoomService roomService; 
 
     /**
      * POST /api/rooms
@@ -49,20 +47,8 @@ public class RoomController {
                 .map(ResponseEntity::ok) // If found, return 200 OK with the RoomDto
                 .orElseThrow(() -> new RoomNotFoundException(publicId)); // If not found, throw exception (results in 404)
 
-        // Alternative using .orElseGet()
-        // RoomDto room = roomService.findRoomByPublicId(publicId)
-        //       .orElseThrow(() -> new RoomNotFoundException(publicId));
-        // return ResponseEntity.ok(room);
+        
     }
 
-    // We might not need a separate /songs endpoint if GET /api/rooms/{publicId} returns the songs,
-    // but it could be useful if the frontend sometimes only needs the song list.
-    // Example:
-    // @GetMapping("/{publicId}/songs")
-    // public ResponseEntity<List<PlaylistSongDto>> getRoomSongs(@PathVariable String publicId) {
-    //     RoomDto room = roomService.findRoomByPublicId(publicId)
-    //                          .orElseThrow(() -> new RoomNotFoundException(publicId));
-    //     return ResponseEntity.ok(room.getPlaylistSongs());
-    // }
 
 }

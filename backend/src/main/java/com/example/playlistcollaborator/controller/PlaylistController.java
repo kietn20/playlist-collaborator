@@ -1,4 +1,3 @@
-// File: src/main/java/com/example/playlistcollaborator/controller/PlaylistController.java
 // Purpose: Controller for handling WebSocket messages related to playlists.
 
 package com.example.playlistcollaborator.controller;
@@ -82,7 +81,7 @@ public class PlaylistController {
             SimpMessageHeaderAccessor headerAccessor) { // For getting session attributes/user info
 
         log.debug("Broadcasting playback state for room {}: {}", publicId, playbackState);
-        return playbackState; // Simply broadcast the received state to all subscribers
+        return playbackState; // broadcast the received state to all subscribers
     }
 
     @MessageMapping("/room/{publicId}/nextSong")

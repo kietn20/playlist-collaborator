@@ -1,6 +1,4 @@
-// File: src/components/features/room/PlaylistItem.tsx
 // Purpose: Renders a single item in the playlist queue.
-// Location: src/components/features/room/
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
@@ -37,13 +35,12 @@ const PlaylistItem: React.FC<PlaylistItemProps> = ({ song, onRemove, currentUser
                 {song.addedByUsername && (
                     <div className={cn(
                         "text-xs opacity-80 mt-0.5",
-                        isOwnSong ? "text-custom-accent font-semibold" : "text-custom-secondary" // Different style for "Added by you"
+                        isOwnSong ? "text-custom-accent font-semibold" : "text-custom-secondary" 
                     )}>
                         Added by: {isOwnSong ? "You" : song.addedByUsername}
                     </div>
                 )}
             </div>
-            {/* Consider who can remove songs - for now, anyone */}
             <Button
                 variant="ghost"
                 size="icon"

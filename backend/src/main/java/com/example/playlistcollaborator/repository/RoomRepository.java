@@ -1,6 +1,4 @@
-// File: src/main/java/com/example/playlistcollaborator/repository/RoomRepository.java
 // Purpose: Spring Data JPA repository interface for Room entities.
-// Location: src/main/java/com/example/playlistcollaborator/repository/
 
 package com.example.playlistcollaborator.repository;
 
@@ -14,7 +12,7 @@ import java.util.UUID;
 @Repository // Marks this as a Spring Data repository component
 public interface RoomRepository extends JpaRepository<Room, UUID> { // Entity type: Room, Primary Key type: UUID
 
-    // Spring Data JPA will automatically implement this method based on the naming convention
+    // Spring Data JPA auto implement this method based on the naming convention
     // Finds a Room by its publicId field. Returns Optional to handle cases where it's not found.
     Optional<Room> findByPublicId(String publicId);
 

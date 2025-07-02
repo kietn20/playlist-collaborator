@@ -1,6 +1,4 @@
-// File: src/main/java/com/example/playlistcollaborator/dto/AddSongRequest.java
 // Purpose: DTO representing a client's request to add a song via WebSocket.
-// Location: src/main/java/com/example/playlistcollaborator/dto/
 
 package com.example.playlistcollaborator.dto;
 

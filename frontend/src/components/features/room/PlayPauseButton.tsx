@@ -1,4 +1,3 @@
-// File: src/components/features/room/PlayPauseButton.tsx
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Play, Pause } from 'lucide-react';

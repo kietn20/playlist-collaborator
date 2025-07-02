@@ -1,5 +1,3 @@
-// File: src/components/layouts/RoomView.tsx
-
 import React from 'react';
 import HeaderControls from '../features/room/HeaderControls';
 import CurrentlyPlaying from '../features/room/CurrentlyPlaying';

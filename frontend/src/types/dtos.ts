@@ -1,6 +1,3 @@
-// File: src/types/dtos.ts
-// Purpose: Defines TypeScript types for DTOs exchanged with the backend.
-
 export interface PlaylistSongDto {
     id: string; // UUID is a string
     title: string;

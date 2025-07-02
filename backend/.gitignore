@@ -9,19 +9,8 @@ hs_err_pid*
 target/
 .repository/
 
-### Docker specific from current directory if accidentally built ###
-# (If these files were generated outside of `target/` during local docker build tests)
-# application.jar # (Or specific name)
-
 ### Sensitive Configuration ###
 # Local-specific properties file containing secrets
 src/main/resources/application-local.properties
 
-# .env file if it's specifically for the backend and located here
-# (Your screenshot shows .env inside backend/, so this is correct)
 .env
-
-# IDE files specifically for the *backend module* if opened separately
-# (though a root .idea usually covers modules too)
-# .idea/
-# *.iml

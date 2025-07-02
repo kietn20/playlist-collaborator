@@ -1,6 +1,4 @@
-# File: PLAYLIST-COLLABORATOR/docker-compose.prod.yml
 # Purpose: Defines how to run the application in a production-like environment using pre-built images.
-# Location: Project Root
 
 version: '3.8'
 

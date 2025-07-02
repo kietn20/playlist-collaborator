@@ -1,4 +1,3 @@
-// File: src/lib/utils.ts
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -16,7 +15,7 @@ export function getYoutubeVideoId(urlOrId: string): string | null {
   try {
       const url = new URL(urlOrId);
       if (url.hostname === "youtu.be") {
-          return url.pathname.slice(1); // Remove the leading '/'
+          return url.pathname.slice(1); 
       }
       if (url.hostname === "www.youtube.com" || url.hostname === "youtube.com") {
           if (url.pathname === "/watch") {
@@ -30,9 +29,7 @@ export function getYoutubeVideoId(urlOrId: string): string | null {
           }
       }
   } catch (error) {
-    // Not a valid URL, but could still be an ID if it didn't match regex above
     console.warn("Could not parse YouTube URL, treating input as potential ID:", urlOrId, error);
   }
-  // If all else fails, return null or the original string if we assume it might be an ID not caught by regex
-  return null; // Stricter: return null if not parsed
+  return null; 
 }

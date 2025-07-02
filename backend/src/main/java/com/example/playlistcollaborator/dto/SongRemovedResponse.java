@@ -1,4 +1,3 @@
-// File: src/main/java/com/example/playlistcollaborator/dto/SongRemovedResponse.java
 package com.example.playlistcollaborator.dto;
 
 import lombok.Data;

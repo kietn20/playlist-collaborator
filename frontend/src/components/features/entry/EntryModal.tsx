@@ -91,7 +91,6 @@ const EntryModal: React.FC<EntryModalProps> = ({ isOpen, isLoading, onJoinOrCrea
                     </Button>
                 </DialogFooter>
             </DialogContent>
-            {/* Optional: Full-screen overlay to enhance modal effect if Dialog is "always mounted" strategy */}
             {isOpen && <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" />}
         </Dialog>
     );

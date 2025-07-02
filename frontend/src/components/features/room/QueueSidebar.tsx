@@ -1,5 +1,3 @@
-// File: src/components/features/room/QueueSidebar.tsx
-
 import React from 'react';
 import AddSongForm from './AddSongForm';
 import Playlist from './Playlist';

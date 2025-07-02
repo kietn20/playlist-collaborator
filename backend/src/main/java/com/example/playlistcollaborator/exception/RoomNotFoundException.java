@@ -1,6 +1,4 @@
-// File: src/main/java/com/example/playlistcollaborator/exception/RoomNotFoundException.java
 // Purpose: Custom exception for when a requested Room cannot be found.
-// Location: src/main/java/com/example/playlistcollaborator/exception/
 
 package com.example.playlistcollaborator.exception;
 

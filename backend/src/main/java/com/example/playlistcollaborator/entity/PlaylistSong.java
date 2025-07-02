@@ -1,6 +1,4 @@
-// File: src/main/java/com/example/playlistcollaborator/entity/PlaylistSong.java
 // Purpose: JPA Entity representing a Song within a Room's playlist.
-// Location: src/main/java/com/example/playlistcollaborator/entity/
 
 package com.example.playlistcollaborator.entity;
 

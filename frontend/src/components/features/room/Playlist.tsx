@@ -1,6 +1,4 @@
-// File: src/components/features/room/Playlist.tsx
 // Purpose: Displays the list/queue of upcoming songs.
-// Location: src/components/features/room/
 
 import React from 'react';
 import PlaylistItem from './PlaylistItem';

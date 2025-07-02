@@ -1,4 +1,3 @@
-// File: src/components/features/room/SeekBar.tsx
 import React from 'react';
 import { Slider } from '@/components/ui/slider'; // From shadcn/ui
 
@@ -22,7 +21,7 @@ const SeekBar: React.FC<SeekBarProps> = ({ currentTime, duration, onSeek, disabl
       <span className="text-xs text-muted-foreground">{formatTime(currentTime)}</span>
       <Slider
         value={[currentTime]}
-        max={duration || 100} // Use duration if available, else a default max
+        max={duration || 100} 
         step={1}
         onValueChange={(value) => onSeek(value[0])}
         disabled={disabled || !duration}

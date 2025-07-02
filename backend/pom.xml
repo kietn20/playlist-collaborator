@@ -6,7 +6,7 @@
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
 		<version>3.4.5</version>
-		<relativePath/> <!-- lookup parent from repository -->
+		<relativePath/> 
 	</parent>
 	<groupId>com.example</groupId>
 	<artifactId>playlist-collaborator</artifactId>
@@ -30,7 +30,7 @@
 
 	<properties>
 		<java.version>17</java.version>
-		<guava.version>32.0.1-jre</guava.version> <!-- Or 33.2.0-jre which is more recent as of May 2024 -->
+		<guava.version>32.0.1-jre</guava.version>
 	</properties>
 
 	<dependencyManagement>
@@ -38,11 +38,7 @@
 			<dependency>
 				<groupId>com.google.guava</groupId>
 				<artifactId>guava</artifactId>
-				<!-- Version 32.0.1-jre is recommended over 32.0.0 for Windows compatibility,
-                     and 32.1.x-jre or 33.x.x-jre are even newer. Check Maven Central for latest safe -jre version.
-                     As of late 2023 / early 2024, 32.0.1-jre or 32.1.1-jre were good choices.
-                     A very recent one as of May 2024 would be 33.2.0-jre -->
-				<version>${guava.version}</version> <!-- Use property or hardcode -->
+				<version>${guava.version}</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
@@ -86,21 +82,12 @@
 		<dependency>
 			<groupId>com.google.apis</groupId>
 			<artifactId>google-api-services-youtube</artifactId>
-			<version>v3-rev20230816-2.0.0</version> <!-- Or check for a newer revision -->
-			<!-- You might need to exclude its older Guava version if it causes conflicts,
-                 though <dependencyManagement> should handle it.
-            <exclusions>
-               <exclusion>
-                   <groupId>com.google.guava</groupId>
-                   <artifactId>guava</artifactId>
-               </exclusion>
-            </exclusions>
-            -->
+			<version>v3-rev20230816-2.0.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.google.http-client</groupId>
 			<artifactId>google-http-client-jackson2</artifactId>
-			<version>1.43.3</version> <!-- Or check for a newer revision -->
+			<version>1.43.3</version>
 		</dependency>
 
 

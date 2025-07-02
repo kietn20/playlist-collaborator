@@ -1,6 +1,4 @@
-// File: src/main/java/com/example/playlistcollaborator/service/RoomService.java
 // Purpose: Interface defining the contract for Room service operations.
-// Location: src/main/java/com/example/playlistcollaborator/service/
 
 package com.example.playlistcollaborator.service;
 

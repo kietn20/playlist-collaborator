@@ -1,4 +1,3 @@
-// File: src/main/java/com/example/playlistcollaborator/exception/PlaylistSongNotFoundException.java
 package com.example.playlistcollaborator.exception;
 
 import org.springframework.http.HttpStatus;
