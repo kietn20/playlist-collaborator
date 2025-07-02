@@ -1,0 +1,51 @@
+# File: PLAYLIST-COLLABORATOR/docker-compose.prod.yml
+# Purpose: Defines how to run the application in a production-like environment using pre-built images.
+# Location: Project Root
+
+version: '3.8'
+
+services:
+  # --- PostgreSQL Database Service ---
+  postgres-db:
+    image: postgres:15
+    container_name: playlist-postgres
+    environment:
+      # These values should match what's in your production .env file on the server
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      # Use a named volume to persist database data across container restarts/re-deployments
+      - postgres_data:/var/lib/postgresql/data
+    restart: always # 'always' is a good policy for a production database
+
+  # --- Spring Boot Backend Service ---
+  backend-app:
+    # PULL the pre-built image from Docker Hub instead of building it
+    image: kietkite/playlist-backend:latest
+    container_name: playlist-backend
+    depends_on:
+      - postgres-db
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY}
+    restart: always
+
+  # --- React Frontend Service (Nginx) ---
+  frontend-app:
+    # PULL the pre-built image from Docker Hub
+    image: kietkite/playlist-frontend:latest
+    container_name: playlist-frontend
+    ports:
+      # Map host port 80 to Nginx's port 80 in the container
+      # This makes your app available at your server's public IP address
+      - "80:80"
+    depends_on:
+      - backend-app
+    restart: always
+
+volumes:
+  postgres_data:
