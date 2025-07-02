@@ -39,7 +39,7 @@ const EntryModal: React.FC<EntryModalProps> = ({ isOpen, isLoading, onJoinOrCrea
         <Dialog open={isOpen} onOpenChange={() => { /* Managed by App.tsx, do nothing here */ }}>
             <DialogContent className="sm:max-w-[425px] bg-card border-border text-foreground border-red-200">
                 <DialogHeader>
-                    <DialogTitle className="text-primary">Join or Create a Room</DialogTitle>
+                    <DialogTitle className="text-primary">Join or Create a Roommmmm</DialogTitle>
                     <DialogDescription className="text-muted-foreground">
                         Enter your username (required). To create a new room, leave the Room ID blank.
                         To join an existing room, enter its ID.
