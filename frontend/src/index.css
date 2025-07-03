@@ -29,10 +29,10 @@
     --ring: 62 30% 72%;
     --radius: 0.5rem;
   }
-
+/* 
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     font-family: 'Inter', sans-serif;
-  }
+  } */
 }
