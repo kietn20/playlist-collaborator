@@ -24,35 +24,31 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
     const playerRef = useRef<YouTubePlayer | null>(null);
     const [isPlayerReady, setIsPlayerReady] = useState(false);
 
-    const [leaderCurrentTime, setLeaderCurrentTime] = useState(0);
+    // State for the Leader's UI controls ONLY
+    const [leaderDisplayTime, setLeaderDisplayTime] = useState(0);
     const [leaderDuration, setLeaderDuration] = useState(0);
     const [isLeaderPlaying, setIsLeaderPlaying] = useState(false);
 
-    const syncIntervalRef = useRef<number | null>(null);
-    const timeUpdateIntervalRef = useRef<number | null>(null);
+    // This ref helps prevent a sync message from causing a seek right after the leader seeks manually
+    const justSeekedRef = useRef(false);
 
-    const clearIntervals = useCallback(() => {
-        if (syncIntervalRef.current) clearInterval(syncIntervalRef.current);
-        if (timeUpdateIntervalRef.current) clearInterval(timeUpdateIntervalRef.current);
-    }, []);
+    // --- Player Event Handlers ---
 
     const handlePlayerReady: YouTubeProps['onReady'] = (event) => {
         playerRef.current = event.target;
         setIsPlayerReady(true);
     };
 
-    const handlePlayerStateChange: YouTubeProps['onStateChange'] = async () => {
-        if (!isLeader || !playerRef.current) return;
-
+    const handlePlayerStateChange: YouTubeProps['onStateChange'] = (event) => {
         const player = playerRef.current;
-        const playerState = await player.getPlayerState();
-        const isPlayingNow = playerState === YouTube.PlayerState.PLAYING;
+        if (!player || !isLeader) return;
 
-        setIsLeaderPlaying(isPlayingNow);
-        setLeaderDuration(await player.getDuration());
+        const playerState = player.getPlayerState();
+        const isPlaying = playerState === YouTube.PlayerState.PLAYING;
+        setIsLeaderPlaying(isPlaying);
+        setLeaderDuration(player.getDuration());
 
         if (playerState === YouTube.PlayerState.ENDED) {
-            clearIntervals();
             onSongEnded(currentSong?.id || null);
             return;
         }
@@ -60,12 +56,12 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
         let eventType: PlaybackEventType | null = null;
         if (playerState === YouTube.PlayerState.PLAYING) eventType = 'play';
         if (playerState === YouTube.PlayerState.PAUSED) eventType = 'pause';
-
+        
         if (eventType && currentSong?.youtubeVideoId) {
             onSendPlaybackState({
-                eventType: eventType,
-                isPlaying: isPlayingNow,
-                currentTime: await player.getCurrentTime(),
+                eventType,
+                isPlaying,
+                currentTime: player.getCurrentTime(),
                 videoId: currentSong.youtubeVideoId,
             });
         }
@@ -86,111 +82,81 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
         }
     };
 
-    const handleTogglePlay = useCallback(async () => {
-        if (!playerRef.current) return;
-        const playerState = await playerRef.current.getPlayerState();
-        if (playerState === YouTube.PlayerState.PLAYING) {
-            playerRef.current.pauseVideo();
-        } else {
-            playerRef.current.playVideo();
-        }
+    const handleTogglePlay = useCallback(() => {
+        const player = playerRef.current;
+        if (!player) return;
+        const playerState = player.getPlayerState();
+        (playerState === YouTube.PlayerState.PLAYING) ? player.pauseVideo() : player.playVideo();
     }, []);
 
     const handleSeek = useCallback((newTime: number) => {
-        if (!playerRef.current || !currentSong?.youtubeVideoId) return;
-        playerRef.current.seekTo(newTime, true);
-        setLeaderCurrentTime(newTime);
-        onSendPlaybackState({
-            eventType: 'seek',
-            isPlaying: true,
-            currentTime: newTime,
-            videoId: currentSong.youtubeVideoId,
-        });
-    }, [currentSong, onSendPlaybackState]);
+        const player = playerRef.current;
+        if (!player || !currentSong?.youtubeVideoId) return;
+        player.seekTo(newTime, true);
+        setLeaderDisplayTime(newTime);
+        justSeekedRef.current = true; // Mark that we just manually sought
+        onSendPlaybackState({ eventType: 'seek', isPlaying: isLeaderPlaying, currentTime: newTime, videoId: currentSong.youtubeVideoId });
+        setTimeout(() => { justSeekedRef.current = false; }, 1000); // Reset the flag after 1s
+    }, [currentSong, isLeaderPlaying, onSendPlaybackState]);
 
-    // LEADER: Periodic Syncing and local time updates
+    // --- Main `useEffect` for all player synchronization and control ---
     useEffect(() => {
-        clearIntervals();
-        if (isLeader && isPlayerReady && playerRef.current && isLeaderPlaying && currentSong?.youtubeVideoId) {
-            const videoId = currentSong.youtubeVideoId;
+        const player = playerRef.current;
 
-            timeUpdateIntervalRef.current = window.setInterval(() => {
-                // IIFE (Immediately Invoked Function Expression) to use async inside setInterval
-                (async () => {
-                    setLeaderCurrentTime(await playerRef.current?.getCurrentTime() || 0);
-                })();
+        // If the player isn't ready for this render, we can't do anything yet.
+        if (!isPlayerReady || !player) {
+            return;
+        }
+
+        // LEADER LOGIC: Controls intervals and UI updates
+        if (isLeader) {
+            const timeIntervalId = window.setInterval(() => {
+                const current = player.getCurrentTime();
+                if (current) setLeaderDisplayTime(current);
             }, 500);
 
-            syncIntervalRef.current = window.setInterval(() => {
-                (async () => {
-                    const player = playerRef.current;
-                    if (!player) return;
-                    const currentTime = await player.getCurrentTime();
-                    onSendPlaybackState({ eventType: 'sync', isPlaying: true, currentTime, videoId });
-                })();
-            }, SYNC_INTERVAL_MS);
-        }
-        return clearIntervals;
-    }, [isLeader, isPlayerReady, isLeaderPlaying, currentSong, onSendPlaybackState, clearIntervals]);
-
-    // FOLLOWER: React to External State
-    useEffect(() => {
-        // Create an async function inside the effect to handle logic
-        const syncFollowerPlayer = async () => {
-            const player = playerRef.current;
-            if (isLeader || !isPlayerReady || !player || !externalPlaybackState || currentSong?.youtubeVideoId !== externalPlaybackState.videoId) {
-                return;
+            let syncIntervalId: number | null = null;
+            if (isLeaderPlaying) {
+                syncIntervalId = window.setInterval(() => {
+                    const videoId = currentSong?.youtubeVideoId;
+                    if (player && videoId) {
+                        onSendPlaybackState({ eventType: 'sync', isPlaying: true, currentTime: player.getCurrentTime(), videoId });
+                    }
+                }, SYNC_INTERVAL_MS);
             }
-
-            const remoteState = externalPlaybackState;
-            const playerState = await player.getPlayerState();
-
-            switch (remoteState.eventType) {
-                case 'play':
-                    if (playerState !== YouTube.PlayerState.PLAYING) {
-                        player.seekTo(remoteState.currentTime, true);
-                        player.playVideo();
-                    }
-                    break;
-                case 'pause':
-                    if (playerState !== YouTube.PlayerState.PAUSED) {
-                        player.pauseVideo();
-                    }
-                    break;
-                case 'seek':
-                    player.seekTo(remoteState.currentTime, true);
-                    const isPlaying = await player.getPlayerState() === YouTube.PlayerState.PLAYING;
-                    if (remoteState.isPlaying && !isPlaying) {
-                        player.playVideo();
-                    } else if (!remoteState.isPlaying && isPlaying) {
-                        player.pauseVideo();
-                    }
-                    break;
-                case 'sync':
-                    if (remoteState.isPlaying && playerState === YouTube.PlayerState.PLAYING) {
-                        const localTime = await player.getCurrentTime();
-                        if (Math.abs(localTime - remoteState.currentTime) > SYNC_THRESHOLD_S) {
-                            player.seekTo(remoteState.currentTime, true);
-                        }
-                    } else if (remoteState.isPlaying && playerState !== YouTube.PlayerState.PLAYING) {
-                        player.seekTo(remoteState.currentTime, true);
-                        player.playVideo();
-                    }
-                    break;
-            }
-        };
-
-        syncFollowerPlayer();
-    }, [externalPlaybackState, isLeader, isPlayerReady, currentSong]);
-
-    // This effect handles loading a new song into the player
-    useEffect(() => {
-        if (isPlayerReady && playerRef.current && currentSong?.youtubeVideoId) {
-            playerRef.current.loadVideoById(currentSong.youtubeVideoId);
-        } else if (!currentSong && playerRef.current && typeof playerRef.current.stopVideo === 'function') {
-            playerRef.current.stopVideo();
+            // Cleanup function for Leader intervals
+            return () => {
+                clearInterval(timeIntervalId);
+                if (syncIntervalId) clearInterval(syncIntervalId);
+            };
         }
-    }, [currentSong, isPlayerReady]);
+
+        // FOLLOWER LOGIC: Reacts to external state changes
+        else {
+            if (externalPlaybackState && currentSong?.youtubeVideoId === externalPlaybackState.videoId) {
+                const playerState = player.getPlayerState();
+                const remote = externalPlaybackState;
+
+                // Don't sync if leader just sought, gives time for player to catch up
+                if (remote.eventType === 'sync' && justSeekedRef.current) return;
+
+                // Sync Play/Pause State
+                if (remote.isPlaying && playerState !== YouTube.PlayerState.PLAYING) {
+                    player.playVideo();
+                } else if (!remote.isPlaying && playerState === YouTube.PlayerState.PLAYING) {
+                    player.pauseVideo();
+                }
+
+                // Sync Time (Seek)
+                const localTime = player.getCurrentTime();
+                const timeDiff = Math.abs(localTime - remote.currentTime);
+                if (timeDiff > SYNC_THRESHOLD_S) {
+                    player.seekTo(remote.currentTime, true);
+                }
+            }
+        }
+
+    }, [isLeader, currentSong, isPlayerReady, isLeaderPlaying, externalPlaybackState, onSendPlaybackState]);
 
     const playerOpts: YouTubeProps['opts'] = {
         height: '100%', width: '100%',
@@ -202,56 +168,37 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
         },
     };
 
-    useEffect(() => {
-        if (currentSong?.youtubeVideoId) {
-            if (isPlayerReady && playerRef.current) {
-                console.log(`Loading new video for ${isLeader ? 'Leader' : 'Follower'}: ${currentSong.title}`);
-                playerRef.current.loadVideoById(currentSong.youtubeVideoId);
-            }
-            // If the player isn't ready, the onReady event for the new player instance will handle it
-        } else {
-            // Song queue is empty
-            if (playerRef.current && typeof playerRef.current.stopVideo === 'function') {
-                playerRef.current.stopVideo();
-            }
-            // Reset player-specific state when the queue becomes empty
-            setIsPlayerReady(false);
-            setLeaderDuration(0);
-            setLeaderCurrentTime(0);
-        }
-    }, [currentSong, isPlayerReady, isLeader]);
+    if (!currentSong || !currentSong.youtubeVideoId) {
+        return (
+            <div className="w-full h-full bg-muted rounded-md flex items-center justify-center">
+                <p className="text-muted-foreground">No song currently playing or queue is empty.</p>
+            </div>
+        );
+    }
 
     return (
         <div className="p-1 rounded bg-muted/30 h-full flex flex-col items-center justify-center text-center">
-            {currentSong && currentSong.youtubeVideoId ? (
-                <>
-                    <div className="aspect-video w-full max-h-[75vh]">
-                        <YouTube
-                            key={currentSong.id}
-                            videoId={currentSong.youtubeVideoId}
-                            opts={playerOpts}
-                            onReady={handlePlayerReady}
-                            onStateChange={handlePlayerStateChange}
-                            onError={handlePlayerError}
-                            className="w-full h-full rounded-md overflow-hidden shadow-lg"
-                        />
+            <div className="aspect-video w-full max-h-[75vh]">
+                <YouTube
+                    key={currentSong.id} // Re-mounts the component on song change, which is key!
+                    videoId={currentSong.youtubeVideoId}
+                    opts={playerOpts}
+                    onReady={handlePlayerReady}
+                    onStateChange={handlePlayerStateChange}
+                    onError={handlePlayerError}
+                    className="w-full h-full rounded-md overflow-hidden shadow-lg"
+                />
+            </div>
+            <div className="mt-4 px-2 w-full flex flex-col items-center gap-2">
+                <h3 className="text-xl font-bold text-primary truncate" title={currentSong.title}>{currentSong.title}</h3>
+                <p className="text-md text-secondary truncate" title={currentSong.artist}>{currentSong.artist}</p>
+                {isLeader && isPlayerReady && (
+                    <div className="w-full max-w-md flex flex-col items-center gap-2 mt-2">
+                        <PlayPauseButton isPlaying={isLeaderPlaying} onTogglePlay={handleTogglePlay} disabled={!isPlayerReady} />
+                        <SeekBar currentTime={leaderDisplayTime} duration={leaderDuration} onSeek={handleSeek} disabled={!isPlayerReady} />
                     </div>
-                    <div className="mt-4 px-2 w-full flex flex-col items-center gap-2">
-                        <h3 className="text-xl font-bold text-primary truncate" title={currentSong.title}>{currentSong.title}</h3>
-                        <p className="text-md text-secondary truncate" title={currentSong.artist}>{currentSong.artist}</p>
-                        {isLeader && isPlayerReady && (
-                            <div className="w-full max-w-md flex flex-col items-center gap-2 mt-2">
-                                <PlayPauseButton isPlaying={isLeaderPlaying} onTogglePlay={handleTogglePlay} disabled={!isPlayerReady} />
-                                <SeekBar currentTime={leaderCurrentTime} duration={leaderDuration} onSeek={handleSeek} disabled={!isPlayerReady} />
-                            </div>
-                        )}
-                    </div>
-                </>
-            ) : (
-                <div className="w-full h-full bg-muted rounded-md flex items-center justify-center">
-                    <p className="text-muted-foreground">No song currently playing or queue is empty.</p>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 };
