@@ -150,67 +150,61 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
             const remoteState = externalPlaybackState;
             const playerState = await player.getPlayerState();
 
-            // Use eventType to be more precise about what action to take
-            switch (remoteState.eventType) {
-                case 'play':
-                    // The leader said to play. The most robust action is to seek and play.
-                    console.log(`[Follower] Received PLAY event. Seeking to ${remoteState.currentTime.toFixed(2)} and playing.`);
-                    player.seekTo(remoteState.currentTime, true);
-                    player.playVideo();
-                    break;
+            // A 'sync' event while the follower is paused/cued should behave like a 'play' event
+            // This is key for the initial start-up synchronization
+            const effectiveEventType = (remoteState.eventType === 'sync' && playerState !== YouTube.PlayerState.PLAYING)
+                ? 'play'
+                : remoteState.eventType;
 
+            switch (effectiveEventType) {
+                case 'play':
+                    if (playerState !== YouTube.PlayerState.PLAYING) {
+                        console.log(`[Follower] Syncing to PLAY at ${remoteState.currentTime.toFixed(2)}s`);
+                        player.seekTo(remoteState.currentTime, true);
+                        player.playVideo();
+                    }
+                    break;
                 case 'pause':
-                    // The leader said to pause.
                     if (playerState !== YouTube.PlayerState.PAUSED) {
-                        console.log('[Follower] Received PAUSE event. Pausing video.');
+                        console.log('[Follower] Syncing to PAUSE');
                         player.pauseVideo();
                     }
                     break;
-
                 case 'seek':
-                    // The leader initiated a seek.
-                    console.log(`[Follower] Received SEEK event. Seeking to ${remoteState.currentTime.toFixed(2)}`);
+                    console.log(`[Follower] Syncing to SEEK at ${remoteState.currentTime.toFixed(2)}s`);
                     player.seekTo(remoteState.currentTime, true);
-                    // If the remote state is playing, ensure we are playing too.
                     if (remoteState.isPlaying && playerState !== YouTube.PlayerState.PLAYING) {
                         player.playVideo();
                     }
                     break;
-
                 case 'sync':
-                    // A periodic sync message. We only care if we are significantly drifted.
-                    if (remoteState.isPlaying && playerState === YouTube.PlayerState.PLAYING) {
+                    // This now only handles drift correction for an already playing video
+                    if (playerState === YouTube.PlayerState.PLAYING) {
                         const localTime = await player.getCurrentTime();
                         const timeDiff = Math.abs(localTime - remoteState.currentTime);
-
                         if (timeDiff > SYNC_THRESHOLD_S) {
-                            console.log(`[Follower] Resyncing time due to drift. Diff: ${timeDiff.toFixed(2)}s`);
+                            console.log(`[Follower] Correcting drift. Diff: ${timeDiff.toFixed(2)}s`);
                             player.seekTo(remoteState.currentTime, true);
                         }
-                    }
-                    // This condition handles if the follower somehow got paused when it shouldn't have
-                    else if (remoteState.isPlaying && playerState !== YouTube.PlayerState.PLAYING) {
-                        console.log('[Follower] Correcting state to PLAY based on sync message.');
-                        player.playVideo();
                     }
                     break;
             }
         };
 
         syncFollowerPlayer();
-
     }, [externalPlaybackState, isLeader, isPlayerReady, currentSong]);
 
-    // Main useEffect for handling song changes
+    // Main useEffect for handling song changes and cleanup
     useEffect(() => {
         if (!currentSong) {
+            // Cleanup logic when queue is empty
             if (playerRef.current && typeof playerRef.current.stopVideo === 'function') {
                 playerRef.current.stopVideo();
             }
             clearIntervals();
             setIsPlayerReady(false);
             setLeaderDuration(0);
-            setLeaderCurrentTime(0);
+            setLeaderDisplayTime(0);
             setIsLeaderPlaying(false);
             playerRef.current = null;
         }
@@ -219,7 +213,8 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
     const playerOpts: YouTubeProps['opts'] = {
         height: '100%', width: '100%',
         playerVars: {
-            autoplay: isLeader ? 1 : 0,
+            // Important: Let the Leader autoplay via onReady, and the Follower start programmatically.
+            autoplay: 0,
             controls: isLeader ? 1 : 0,
             modestbranding: 1, rel: 0,
             disablekb: isLeader ? 0 : 1,
