@@ -141,28 +141,64 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
     }, [isLeader, isPlayerReady, isLeaderPlaying, currentSong, onSendPlaybackState, clearIntervals]);
 
     useEffect(() => {
+        const player = playerRef.current;
+        if (isLeader || !isPlayerReady || !player || !externalPlaybackState || currentSong?.youtubeVideoId !== externalPlaybackState.videoId) {
+            return;
+        }
+
         const syncFollowerPlayer = async () => {
-            const player = playerRef.current;
-            if (isLeader || !isPlayerReady || !player || !externalPlaybackState || currentSong?.youtubeVideoId !== externalPlaybackState.videoId) {
-                return;
-            }
-            const remote = externalPlaybackState;
+            const remoteState = externalPlaybackState;
             const playerState = await player.getPlayerState();
 
-            if (remote.eventType === 'sync' && justSeekedRef.current) return;
+            // Use eventType to be more precise about what action to take
+            switch (remoteState.eventType) {
+                case 'play':
+                    // The leader said to play. The most robust action is to seek and play.
+                    console.log(`[Follower] Received PLAY event. Seeking to ${remoteState.currentTime.toFixed(2)} and playing.`);
+                    player.seekTo(remoteState.currentTime, true);
+                    player.playVideo();
+                    break;
 
-            if (remote.isPlaying && playerState !== YouTube.PlayerState.PLAYING) {
-                player.playVideo();
-            } else if (!remote.isPlaying && playerState === YouTube.PlayerState.PLAYING) {
-                player.pauseVideo();
-            }
+                case 'pause':
+                    // The leader said to pause.
+                    if (playerState !== YouTube.PlayerState.PAUSED) {
+                        console.log('[Follower] Received PAUSE event. Pausing video.');
+                        player.pauseVideo();
+                    }
+                    break;
 
-            const localTime = await player.getCurrentTime();
-            if (Math.abs(localTime - remote.currentTime) > SYNC_THRESHOLD_S) {
-                player.seekTo(remote.currentTime, true);
+                case 'seek':
+                    // The leader initiated a seek.
+                    console.log(`[Follower] Received SEEK event. Seeking to ${remoteState.currentTime.toFixed(2)}`);
+                    player.seekTo(remoteState.currentTime, true);
+                    // If the remote state is playing, ensure we are playing too.
+                    if (remoteState.isPlaying && playerState !== YouTube.PlayerState.PLAYING) {
+                        player.playVideo();
+                    }
+                    break;
+
+                case 'sync':
+                    // A periodic sync message. We only care if we are significantly drifted.
+                    if (remoteState.isPlaying && playerState === YouTube.PlayerState.PLAYING) {
+                        const localTime = await player.getCurrentTime();
+                        const timeDiff = Math.abs(localTime - remoteState.currentTime);
+
+                        if (timeDiff > SYNC_THRESHOLD_S) {
+                            console.log(`[Follower] Resyncing time due to drift. Diff: ${timeDiff.toFixed(2)}s`);
+                            player.seekTo(remoteState.currentTime, true);
+                        }
+                    }
+                    // This condition handles if the follower somehow got paused when it shouldn't have
+                    else if (remoteState.isPlaying && playerState !== YouTube.PlayerState.PLAYING) {
+                        console.log('[Follower] Correcting state to PLAY based on sync message.');
+                        player.playVideo();
+                    }
+                    break;
             }
         };
+
         syncFollowerPlayer();
+
     }, [externalPlaybackState, isLeader, isPlayerReady, currentSong]);
 
     // Main useEffect for handling song changes
