@@ -1,6 +1,4 @@
-// File: src/main/resources/static/app.js
 // Purpose: Frontend JavaScript logic for the Collaborative Playlist app.
-// Location: src/main/resources/static/
 
 // --- DOM Elements ---
 const roomIdInput = document.getElementById('roomIdInput');
@@ -18,7 +16,6 @@ const playlistUl = document.getElementById('playlist');
 const connectionStatusDiv = document.getElementById('connection-status');
 const disconnectBtn = document.getElementById('disconnectBtn');
 
-// --- State Variables ---
 let stompClient = null;
 let currentSubscription = null;
 let currentRoomId = null;
