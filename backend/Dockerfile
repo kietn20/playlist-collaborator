@@ -1,6 +1,4 @@
-# File: playlist-collaborator/Dockerfile
 # Purpose: Defines the Docker image for the Spring Boot backend application.
-# Location: Root of the Spring Boot backend project.
 
 # --- Stage 1: Build ---
 # Use an official OpenJDK runtime as a parent image.

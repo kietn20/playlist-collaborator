@@ -1,6 +1,4 @@
-# File: frontend/Dockerfile
 # Purpose: Defines the Docker image for the React frontend application, served by Nginx.
-# Location: frontend/ directory
 
 # --- Stage 1: Build the React application ---
 # Use an official Node.js image as a parent image for the build stage.
