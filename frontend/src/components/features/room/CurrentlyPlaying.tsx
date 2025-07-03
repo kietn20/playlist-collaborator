@@ -1,5 +1,3 @@
-// File: frontend/src/components/features/room/CurrentlyPlaying.tsx (Final, Final Corrected Version)
-
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import YouTube, { YouTubePlayer, YouTubeProps } from 'react-youtube';
 import { PlaylistSongDto, PlaybackStateDto, PlaybackEventType } from '@/types/dtos';
@@ -150,8 +148,6 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
             const remoteState = externalPlaybackState;
             const playerState = await player.getPlayerState();
 
-            // A 'sync' event while the follower is paused/cued should behave like a 'play' event
-            // This is key for the initial start-up synchronization
             const effectiveEventType = (remoteState.eventType === 'sync' && playerState !== YouTube.PlayerState.PLAYING)
                 ? 'play'
                 : remoteState.eventType;
@@ -213,7 +209,6 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
     const playerOpts: YouTubeProps['opts'] = {
         height: '100%', width: '100%',
         playerVars: {
-            // Important: Let the Leader autoplay via onReady, and the Follower start programmatically.
             autoplay: 0,
             controls: isLeader ? 1 : 0,
             modestbranding: 1, rel: 0,
@@ -233,7 +228,7 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
         <div className="p-1 rounded bg-muted/30 h-full flex flex-col items-center justify-center text-center">
             <div className="aspect-video w-full max-h-[75vh]">
                 <YouTube
-                    key={currentSong.id} // Re-mounts the component on song change, which is key!
+                    key={currentSong.id} 
                     videoId={currentSong.youtubeVideoId}
                     opts={playerOpts}
                     onReady={handlePlayerReady}

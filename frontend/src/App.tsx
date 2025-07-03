@@ -1,5 +1,3 @@
-// File: frontend/src/App.tsx
-
 import { useState, useCallback } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
 import EntryModal from './components/features/entry/EntryModal';
