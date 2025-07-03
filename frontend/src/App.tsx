@@ -147,7 +147,7 @@ function App() {
                 />
             )}
 
-            <Toaster position="top-right" reverseOrder={false} toastOptions={{ style: { background: '#333', color: '#fff' } }} />
+            <Toaster position="top-center" reverseOrder={false} toastOptions={{ style: { background: '#333', color: '#fff' } }} />
         </div>
     );
 }
