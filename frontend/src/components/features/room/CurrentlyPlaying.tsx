@@ -25,7 +25,7 @@ const CurrentlyPlaying: React.FC<CurrentlyPlayingProps> = ({
     const [isPlayerReady, setIsPlayerReady] = useState(false);
 
     const [leaderDisplayTime, setLeaderDisplayTime] = useState(0);
-    const [_, setLeaderCurrentTime] = useState(0);
+    // const [_, setLeaderCurrentTime] = useState(0);
     const [leaderDuration, setLeaderDuration] = useState(0);
     const [isLeaderPlaying, setIsLeaderPlaying] = useState(false);
 
