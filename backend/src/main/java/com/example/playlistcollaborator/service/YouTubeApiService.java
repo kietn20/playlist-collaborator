@@ -1,4 +1,3 @@
-// File: src/main/java/com/example/playlistcollaborator/service/YouTubeApiService.java
 package com.example.playlistcollaborator.service;
 
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
